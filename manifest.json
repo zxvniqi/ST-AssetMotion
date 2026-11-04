@@ -1,0 +1,12 @@
+{
+    "display_name": "에셋 모션",
+    "loading_order": 120,
+    "dependencies": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "zxvniqi",
+    "version": "1.0.0",
+    "homePage": "https://github.com/zxvniqi/ST-AssetMotion",
+    "auto_update": true,
+    "minimum_client_version": "1.13.0"
+}
