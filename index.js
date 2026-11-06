@@ -68,6 +68,9 @@ const defaultSettings = Object.freeze({
     disabledEffects: [],
 });
 
+// Speed slider 1.0x plays at this pace (slightly slower than the raw durations below)
+const BASE_PACE = 0.85;
+
 // k = intensity multiplier. tf = transform keyframes (added on top of existing transform).
 // fx = opacity/filter keyframes (replace). loop = ambient motion that may repeat forever.
 const MOTIONS = {
@@ -173,18 +176,25 @@ function sweatMarksPath() {
         for (let i = 0; i < 3; i++) {
             const x = 11 + i * 27 + j * 21;
             const y = 41 - i * 15 + j * 20;
-            d += `M${x - 7} ${y + 10} C${x - 8} ${y - 1} ${x - 4} ${y - 9} ${x + 2} ${y - 8} C${x + 7} ${y - 7} ${x + 8} ${y - 2} ${x + 6} ${y + 3} `;
+            // Symmetric arch, like a fish scale
+            d += `M${x - 7} ${y + 7} C${x - 7} ${y - 9} ${x + 7} ${y - 9} ${x + 7} ${y + 7} `;
         }
     }
     return d.trim();
 }
 // Icons drawn as SVG so font-replacing extensions can't change them
 const OUTLINE = '#2a2a2a';
-const iconNote = c => `<svg viewBox="0 0 40 50" width="100%" height="100%"><g fill="${c}" stroke="${OUTLINE}" stroke-width="2" stroke-linejoin="round">
-<path d="M22 6 H27 V38 C27 45 20 48 13 46 C6 44 5 37 11 34 C15 32 19 32 22 33 Z"/><path d="M27 6 C35 9 40 16 35 27 C35 20 32 16 27 15 Z"/></g></svg>`;
-const iconNotes = c => `<svg viewBox="0 0 50 50" width="100%" height="100%"><g fill="${c}" stroke="${OUTLINE}" stroke-width="2" stroke-linejoin="round">
-<path d="M14 10 L44 4 V12 L19 17 V40 C19 46 12 48 7 46 C2 44 2 38 7 36 C10 34 13 34 14 35 Z"/>
-<path d="M39 13 L44 12 V35 C44 41 37 43 32 41 C27 39 27 33 32 31 C35 29 38 29 39 30 Z"/></g></svg>`;
+// Cute round notes: plump heads with a small shine, no outline
+const iconNote = c => `<svg viewBox="0 0 40 50" width="100%" height="100%"><g fill="${c}">
+<rect x="22" y="5" width="5" height="34" rx="2.5"/><ellipse cx="16" cy="39" rx="11" ry="9" transform="rotate(-18 16 39)"/>
+<path d="M25 5 C33 7 39 13 36 23 C34 18 30 16 25 16 Z"/></g><ellipse cx="12" cy="36" rx="3.5" ry="2.2" fill="#fff" opacity="0.7" transform="rotate(-18 12 36)"/></svg>`;
+const iconNotes = c => `<svg viewBox="0 0 52 50" width="100%" height="100%"><g fill="${c}">
+<rect x="17" y="10" width="5" height="30" rx="2.5"/><rect x="41" y="4" width="5" height="30" rx="2.5"/><path d="M17 10 L46 4 V12 L17 18 Z"/>
+<ellipse cx="11" cy="40" rx="10" ry="8" transform="rotate(-18 11 40)"/><ellipse cx="35" cy="34" rx="10" ry="8" transform="rotate(-18 35 34)"/></g>
+<g fill="#fff" opacity="0.7"><ellipse cx="7" cy="37" rx="3" ry="2" transform="rotate(-18 7 37)"/><ellipse cx="31" cy="31" rx="3" ry="2" transform="rotate(-18 31 31)"/></g></svg>`;
+const iconDrop = () => `<svg viewBox="0 0 20 36" width="100%" height="100%"><defs><linearGradient id="am-drop-g" x1="0" y1="0" x2="0.6" y2="1">
+<stop offset="0" stop-color="#e6f7ff"/><stop offset="1" stop-color="#4fb0ee"/></linearGradient></defs>
+<path d="M10 1 C13 11 19 18 19 25 C19 31 15 35 10 35 C5 35 1 31 1 25 C1 18 7 11 10 1 Z" fill="url(#am-drop-g)" stroke="#fff" stroke-width="1.5"/></svg>`;
 const iconSparkle = c => `<svg viewBox="0 0 40 40" width="100%" height="100%"><path d="M20 1 C22 14 26 18 39 20 C26 22 22 26 20 39 C18 26 14 22 1 20 C14 18 18 14 20 1 Z" fill="${c}" stroke="#c9a400" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
 const iconHeart = c => `<svg viewBox="0 0 40 38" width="100%" height="100%"><path d="M20 35 C6 25 1 17 4 10 C7 2 17 2 20 10 C23 2 33 2 36 10 C39 17 34 25 20 35 Z" fill="${c}" stroke="${OUTLINE}" stroke-width="2" stroke-linejoin="round"/></svg>`;
 // Thick stroke symbols: a dark wide stroke under a colored one
@@ -229,7 +239,7 @@ const EFFECTS = {
         play(L, u, d) {
             AROUND_FACE.slice(0, 6).forEach(([x, y], i) => {
                 const dx = (i % 2 ? 1 : -1) * u * 0.4;
-                run(place(L, (i % 3 === 1 ? svg(iconNotes('#5ab4ff'), u * 1.3, u * 1.3) : svg(iconNote('#5ab4ff'), u * (i % 2 ? 0.95 : 1.1), u * (i % 2 ? 1.2 : 1.4))), x, y),
+                run(place(L, (i % 3 === 1 ? svg(iconNotes('#5ab4ff'), u * 1.05, u * 1.0) : svg(iconNote('#5ab4ff'), u * (i % 2 ? 0.8 : 0.9), u * (i % 2 ? 1.0 : 1.12))), x, y),
                     [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.2, 1, -12, 1, 0.15), pf(dx, -u * 0.7, 1, 12, 1, 0.55), pf(-dx * 0.5, -u * 1.3, 0.9, -8, 0)],
                     d * 0.65, i * d * 0.07);
             });
@@ -237,7 +247,7 @@ const EFFECTS = {
     sparkle: { label: '반짝', hint: 'delighted, proud, dazzling, beautiful, a magical moment', dur: 1800,
         play(L, u, d) {
             AROUND_FACE.forEach(([x, y], i) => {
-                const el = place(L, svg(iconSparkle('#fff3a0'), u * [1.3, 0.9, 1.1, 1.4, 0.85, 1.15, 1, 0.85][i], u * [1.3, 0.9, 1.1, 1.4, 0.85, 1.15, 1, 0.85][i]), x, y);
+                const el = place(L, svg(iconSparkle('#fff3a0'), u * [1.05, 0.75, 0.9, 1.1, 0.7, 0.95, 0.85, 0.7][i], u * [1.05, 0.75, 0.9, 1.1, 0.7, 0.95, 0.85, 0.7][i]), x, y);
                 el.classList.add('am-glow');
                 run(el, [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 45, 1, 0.4), pf(0, 0, 0, 90, 0)], d * 0.5, ((i * 3) % 8) * d * 0.06);
             });
@@ -246,38 +256,38 @@ const EFFECTS = {
         play(L, u, d) {
             AROUND_FACE.slice(0, 6).forEach(([x, y], i) => {
                 const sway = (i % 2 ? 1 : -1) * u * 0.3;
-                run(place(L, svg(iconHeart('#ff6b9e'), u * (i % 3 ? 1.0 : 1.25), u * (i % 3 ? 0.95 : 1.19)), x, y),
+                run(place(L, svg(iconHeart('#ff6b9e'), u * (i % 3 ? 0.85 : 1.05), u * (i % 3 ? 0.81 : 1.0)), x, y),
                     [pf(0, 0, 0.2, 0, 0), pf(0, -u * 0.2, 1.1, 0, 1, 0.2), pf(sway, -u * 0.7, 1, -8, 1, 0.6), pf(-sway * 0.5, -u * 1.3, 0.9, 8, 0)],
                     d * 0.65, i * d * 0.07);
             });
         } },
     question: { label: '물음표', hint: 'confused, puzzled, wondering, not understanding', dur: 1800,
         play(L, u, d) {
-            run(place(L, svg(iconQuestion('#ffd54a'), u * 1.3, u * 1.55), 70, 18),
+            run(place(L, svg(iconQuestion('#ffd54a'), u * 0.9, u * 1.07), 70, 18),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.25, 0, 1, 0.15), pf(0, 0, 1, -14, 1, 0.3), pf(0, 0, 1, 12, 1, 0.45),
                     pf(0, 0, 1, -6, 1, 0.6), pf(0, 0, 1, 0, 1, 0.85), pf(0, -u * 0.3, 1, 0, 0)], d);
-            run(place(L, svg(iconQuestion('#ffd54a'), u * 0.85, u * 1.0), 58, 24),
+            run(place(L, svg(iconQuestion('#ffd54a'), u * 0.6, u * 0.7), 58, 24),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 0, 1, 0.2), pf(0, 0, 1, 10, 1, 0.4), pf(0, 0, 1, 0, 1, 0.8), pf(0, -u * 0.3, 1, 0, 0)],
                 d * 0.85, d * 0.15);
         } },
     exclaim: { label: '느낌표', hint: 'surprised, alarmed, suddenly noticing something', dur: 1400,
         play(L, u, d) {
             const j = u * 0.08;
-            run(place(L, svg(iconExclaim('#ff4d4d'), u * 0.95, u * 1.65), 70, 18),
+            run(place(L, svg(iconExclaim('#ff4d4d'), u * 0.62, u * 1.07), 70, 18),
                 [pf(0, u * 0.3, 0, 0, 0), pf(0, 0, 1.4, 0, 1, 0.12), pf(0, 0, 1, 0, 1, 0.25), pf(-j * 2, 0, 1, -6, 1, 0.32),
                     pf(j * 2, 0, 1, 6, 1, 0.39), pf(-j, 0, 1, -3, 1, 0.46), pf(0, 0, 1, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d);
         } },
     startle: { label: '깜짝(^^^)', hint: 'jolted with surprise, shocked, caught off guard', dur: 1300,
         play(L, u, d) {
             const r = 25;
-            const el = place(L, svg(SPIKE_SVG, u * 1.5, u * 0.84), 70, 14);
+            const el = place(L, svg(SPIKE_SVG, u * 1.15, u * 0.64), 70, 14);
             el.classList.add('am-ink');
             run(el, [pf(0, u * 0.3, 0.3, r, 0), pf(0, 0, 1.2, r, 1, 0.12), pf(0, 0, 1, r, 1, 0.25), pf(0, -u * 0.08, 1.05, r, 1, 0.4),
                 pf(0, 0, 1, r, 1, 0.8), pf(0, -u * 0.2, 1, r, 0)], d);
         } },
     cold_sweat: { label: '식은땀', hint: 'breaking into a cold sweat, flustered, awkward panic, nervously cornered', dur: 1800,
         play(L, u, d) {
-            const el = place(L, svg(SWEAT_MARKS_SVG, u * 2.4, u * 1.75), 24, 12);
+            const el = place(L, svg(SWEAT_MARKS_SVG, u * 1.8, u * 1.31), 24, 12);
             el.classList.add('am-ink');
             const j = u * 0.03;
             run(el, [pf(0, 0, 0.8, 0, 0), pf(0, 0, 1, 0, 1, 0.15), pf(-j, 0, 1, 0, 1, 0.3), pf(j, 0, 1, 0, 1, 0.4), pf(-j, 0, 1, 0, 1, 0.5),
@@ -285,22 +295,20 @@ const EFFECTS = {
         } },
     sweat: { label: '땀', hint: 'nervous, awkward, embarrassed, an uh-oh moment', dur: 1600,
         play(L, u, d) {
-            const drop = document.createElement('span');
-            drop.className = 'am-p am-drop';
-            drop.style.width = drop.style.height = `${u * 0.6}px`;
-            run(place(L, drop, 68, 20),
-                [pf(0, -u * 0.2, 0, -45, 0), pf(0, 0, 1, -45, 1, 0.2), pf(0, 0, 1, -45, 1, 0.5), pf(0, u * 0.9, 0.9, -45, 0)],
+            // Slim, tall drop
+            run(place(L, svg(iconDrop(), u * 0.5, u * 0.9), 68, 20),
+                [pf(0, -u * 0.2, 0, 0, 0), pf(0, 0, 1, 0, 1, 0.2), pf(0, 0, 1, 0, 1, 0.5), pf(0, u * 0.9, 0.9, 0, 0)],
                 d, 0, 'ease-in');
         } },
     anger: { label: '빠직', hint: 'annoyed, irritated, angry, a vein popping', dur: 1500,
         play(L, u, d) {
-            run(place(L, svg(ANGER_SVG, u * 1.2, u * 1.2), 67, 16),
+            run(place(L, svg(ANGER_SVG, u * 1.0, u * 1.0), 67, 16),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.3, 0, 1, 0.15), pf(0, 0, 0.9, 0, 1, 0.3), pf(0, 0, 1.15, 0, 1, 0.45),
                     pf(0, 0, 0.95, 0, 1, 0.6), pf(0, 0, 1.05, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d);
         } },
     zzz: { label: '졸림', hint: 'sleepy, tired, bored, dozing off', dur: 2400,
         play(L, u, d) {
-            [1.1, 0.85, 0.7].forEach((s, i) => {
+            [0.9, 0.7, 0.55].forEach((s, i) => {
                 run(place(L, svg(iconZ('#c9d3ff'), u * s, u * s), 62, 24),
                     [pf(0, 0, 0.4, 0, 0), pf(u * 0.3, -u * 0.4, 1, -10, 1, 0.25), pf(u * 1.1, -u * 1.3, 1, -15, 1, 0.7), pf(u * 1.5, -u * 1.9, 0.9, -20, 0)],
                     d * 0.6, i * d * 0.2);
@@ -308,7 +316,7 @@ const EFFECTS = {
         } },
     idea: { label: '전구', hint: 'a sudden idea, realization, figuring something out', dur: 1800,
         play(L, u, d) {
-            const el = place(L, svg(BULB_SVG, u * 1.8, u * 1.8), 68, 16);
+            const el = place(L, svg(BULB_SVG, u * 1.35, u * 1.35), 68, 16);
             el.classList.add('am-shine');
             run(el, [pf(0, u * 0.4, 0, 0, 0), pf(0, 0, 1.25, -8, 1, 0.15), pf(0, 0, 1, 6, 1, 0.3), pf(0, 0, 1.08, 0, 1, 0.45),
                 pf(0, 0, 1, 0, 1, 0.6), pf(0, 0, 1.08, 0, 1, 0.75), pf(0, -u * 0.2, 1, 0, 0)], d);
@@ -320,7 +328,6 @@ const EFFECTS = {
             el.classList.add('am-ink');
             run(el, [pf(0, 0, 0.3, 0, 0), pf(0, 0, 1.05, -6, 1, 0.15), pf(0, 0, 0.95, 6, 1, 0.3), pf(0, 0, 1.05, -6, 1, 0.45),
                 pf(0, 0, 0.95, 6, 1, 0.6), pf(0, 0, 1.03, -4, 1, 0.75), pf(0, -u * 0.2, 1, 0, 0)], d, 0, 'ease-in-out');
-            veil(L, 'rgba(60, 50, 90, 0.25)', HOLD, d);
         } },
     hit: { label: '타격', hint: 'getting hit, a punch or slap landing, a sharp impact', dur: 900,
         play(L, u, d) {
@@ -336,7 +343,7 @@ const EFFECTS = {
     skull: { label: '무도 해골', hint: 'a fatal blunder, a total disaster, critical damage, a crushing burn', dur: 2200,
         play(L, u, d) {
             // Two stamps fly in one after another and slam onto the picture
-            [[30, 64, 0, 1.9, -12, -1], [70, 30, 0.18, 1.5, 10, 1]].forEach(([x, y, delay, s, r, side]) => {
+            [[20, 70, 0, 1.7, -12, -1], [82, 26, 0.18, 1.35, 10, 1]].forEach(([x, y, delay, s, r, side]) => {
                 const stamp = document.createElement('span');
                 stamp.className = 'am-p am-skull';
                 stamp.style.width = stamp.style.height = `${u * s}px`;
@@ -348,23 +355,24 @@ const EFFECTS = {
         } },
     bandage: { label: '반창고', hint: 'hurt, bruised, beaten up, after getting hit', dur: 2200,
         play(L, u, d) {
-            run(place(L, svg(BANDAGE_SVG, u * 1.1, u * 1.1), 58, 10),
+            run(place(L, svg(BANDAGE_SVG, u * 1.0, u * 1.0), 58, 10),
                 [pf(0, 0, 1.8, -10, 0), pf(0, 0, 0.9, -10, 1, 0.12), pf(0, 0, 1.05, -10, 1, 0.22), pf(0, 0, 1, -10, 1, 0.85), pf(0, 0, 1, -10, 0)], d);
         } },
     soul: { label: '영혼 가출', hint: 'soul leaving the body, utterly drained, dumbfounded, mortified to death', dur: 3000,
         play(L, u, d) {
-            run(place(L, svg(GHOST_SVG, u * 0.9, u * 1.26), FACE_X, 50),
+            run(place(L, svg(GHOST_SVG, u * 0.76, u * 1.07), FACE_X, 50),
                 [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.5, 1, 0, 0.9, 0.2), pf(0, -u * 1.5, 1, 0, 0.9, 0.5),
                     pf(0, -u * 2.5, 1, 0, 0.8, 0.8), pf(0, -u * 3.2, 1, 0, 0)], d, 0, 'ease-in-out');
             veil(L, 'rgba(200, 210, 230, 0.3)', HOLD, d, { mixBlendMode: 'saturation' });
         } },
     focus: { label: '집중선', hint: 'intense focus, a dramatic moment, sudden tension', dur: 1600,
         play(L, u, d) {
-            const mask = `radial-gradient(ellipse 40% 45% at ${FACE_X}% ${FACE_Y}%, transparent 55%, #000 100%)`;
+            // Centered on the picture so every edge gets the same band of lines
+            const mask = 'radial-gradient(ellipse at 50% 50%, transparent 64%, #000 96%)';
             const flicker = [{ opacity: 0 }, { opacity: 1, offset: 0.12 }, { opacity: 0.75, offset: 0.4 }, { opacity: 1, offset: 0.6 }, { opacity: 0.85, offset: 0.85 }, { opacity: 0 }];
-            veil(L, `repeating-conic-gradient(from 0deg at ${FACE_X}% ${FACE_Y}%, rgba(15, 15, 15, 0.65) 0deg 0.8deg, transparent 0.8deg 5deg)`, flicker, d,
+            veil(L, 'repeating-conic-gradient(from 0deg at 50% 50%, rgba(15, 15, 15, 0.65) 0deg 0.8deg, transparent 0.8deg 5deg)', flicker, d,
                 { maskImage: mask, webkitMaskImage: mask });
-            veil(L, `repeating-conic-gradient(from 2deg at ${FACE_X}% ${FACE_Y}%, rgba(15, 15, 15, 0.5) 0deg 0.5deg, transparent 0.5deg 7.3deg)`, flicker, d,
+            veil(L, 'repeating-conic-gradient(from 2deg at 50% 50%, rgba(15, 15, 15, 0.5) 0deg 0.5deg, transparent 0.5deg 7.3deg)', flicker, d,
                 { maskImage: mask, webkitMaskImage: mask });
         } },
     dreamy: { label: '아련', hint: 'nostalgic, wistful, a tender memory, a soft dreamlike moment', dur: 3600,
@@ -691,7 +699,7 @@ function playMotion(el, motion, looping = false, follower = null) {
     if (!def) return;
     const settings = getSettings();
     const k = Number(settings.intensity) || 1;
-    const duration = def.dur / (Number(settings.speed) || 1);
+    const duration = def.dur / ((Number(settings.speed) || 1) * BASE_PACE);
     const iterations = looping ? Infinity : 1;
     el.getAnimations().forEach(a => a.id?.startsWith(MODULE_NAME) && a.cancel());
     const easing = def.loop ? 'ease-in-out' : 'ease-out';
@@ -734,7 +742,7 @@ function playEffect(el, effect) {
     activeLayers.set(el, cleanup);
 
     const unit = Math.max(24, Math.min(100, Math.min(el.offsetWidth, el.offsetHeight) * 0.28));
-    def.play(layer, unit, def.dur / (Number(getSettings().speed) || 1));
+    def.play(layer, unit, def.dur / ((Number(getSettings().speed) || 1) * BASE_PACE));
     Promise.allSettled(layer.getAnimations({ subtree: true }).map(a => a.finished)).then(cleanup);
     return layer;
 }
