@@ -143,15 +143,6 @@
     box-shadow: 0 0 6px rgba(255, 255, 255, 0.6), inset 0 0 6px rgba(255, 255, 255, 0.4);
 }
 
-.am-fx-layer .am-rays {
-    position: absolute;
-    width: 250%;
-    aspect-ratio: 1;
-    background: repeating-conic-gradient(rgba(255, 235, 170, 0.45) 0deg 4deg, transparent 4deg 14deg);
-    -webkit-mask-image: radial-gradient(circle, transparent 12%, #000 20%, transparent 34%);
-    mask-image: radial-gradient(circle, transparent 12%, #000 20%, transparent 34%);
-}
-
 .am-fx-layer .am-drop {
     border-radius: 50% 0 50% 50%;
     background: linear-gradient(135deg, #e2f6ff, #5ab8f0);
