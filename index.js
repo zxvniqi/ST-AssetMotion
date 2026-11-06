@@ -166,14 +166,34 @@ function tornadoPath(turns) {
     }
     return d;
 }
-// Rows of small arches (2-3-2), the classic cartoon cold-sweat mark
+// Cold-sweat hooks laid out like the reference: three diagonal rows of three, rising to the right
 function sweatMarksPath() {
     let d = '';
-    [[8, [10, 30]], [22, [0, 20, 40]], [36, [10, 30]]].forEach(([y, xs]) => {
-        xs.forEach(x => { d += `M${x + 2} ${y + 6} q5 -10 10 0 `; });
-    });
+    for (let j = 0; j < 3; j++) {
+        for (let i = 0; i < 3; i++) {
+            const x = 11 + i * 27 + j * 21;
+            const y = 41 - i * 15 + j * 20;
+            d += `M${x - 7} ${y + 10} C${x - 8} ${y - 1} ${x - 4} ${y - 9} ${x + 2} ${y - 8} C${x + 7} ${y - 7} ${x + 8} ${y - 2} ${x + 6} ${y + 3} `;
+        }
+    }
     return d.trim();
 }
+// Icons drawn as SVG so font-replacing extensions can't change them
+const OUTLINE = '#2a2a2a';
+const iconNote = c => `<svg viewBox="0 0 40 50" width="100%" height="100%"><g fill="${c}" stroke="${OUTLINE}" stroke-width="2" stroke-linejoin="round">
+<path d="M22 6 H27 V38 C27 45 20 48 13 46 C6 44 5 37 11 34 C15 32 19 32 22 33 Z"/><path d="M27 6 C35 9 40 16 35 27 C35 20 32 16 27 15 Z"/></g></svg>`;
+const iconNotes = c => `<svg viewBox="0 0 50 50" width="100%" height="100%"><g fill="${c}" stroke="${OUTLINE}" stroke-width="2" stroke-linejoin="round">
+<path d="M14 10 L44 4 V12 L19 17 V40 C19 46 12 48 7 46 C2 44 2 38 7 36 C10 34 13 34 14 35 Z"/>
+<path d="M39 13 L44 12 V35 C44 41 37 43 32 41 C27 39 27 33 32 31 C35 29 38 29 39 30 Z"/></g></svg>`;
+const iconSparkle = c => `<svg viewBox="0 0 40 40" width="100%" height="100%"><path d="M20 1 C22 14 26 18 39 20 C26 22 22 26 20 39 C18 26 14 22 1 20 C14 18 18 14 20 1 Z" fill="${c}" stroke="#c9a400" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+const iconHeart = c => `<svg viewBox="0 0 40 38" width="100%" height="100%"><path d="M20 35 C6 25 1 17 4 10 C7 2 17 2 20 10 C23 2 33 2 36 10 C39 17 34 25 20 35 Z" fill="${c}" stroke="${OUTLINE}" stroke-width="2" stroke-linejoin="round"/></svg>`;
+// Thick stroke symbols: a dark wide stroke under a colored one
+const iconStroke = (c, viewBox, d, dots, width) => `<svg viewBox="${viewBox}" width="100%" height="100%">
+<path d="${d}" fill="none" stroke="${OUTLINE}" stroke-width="${width + 4}" stroke-linecap="round" stroke-linejoin="round"/>${dots.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r + 2}" fill="${OUTLINE}"/>`).join('')}
+<path d="${d}" fill="none" stroke="${c}" stroke-width="${width}" stroke-linecap="round" stroke-linejoin="round"/>${dots.map(([x, y, r]) => `<circle cx="${x}" cy="${y}" r="${r}" fill="${c}"/>`).join('')}</svg>`;
+const iconQuestion = c => iconStroke(c, '0 0 44 52', 'M11 15 C11 7 17 4 22 4 C29 4 33 8 33 13 C33 19 27 21 24 25 C22 28 22 30 22 33', [[22, 44, 4.5]], 7);
+const iconExclaim = c => iconStroke(c, '0 0 30 52', 'M15 6 L15 31', [[15, 44, 5]], 9);
+const iconZ = c => iconStroke(c, '0 0 40 40', 'M8 8 H31 L9 32 H32', [], 6);
 function burstPoints(n, outer, inner, c) {
     const pts = [];
     for (let i = 0; i < n * 2; i++) {
@@ -188,16 +208,7 @@ const ANGER_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g fill="
 <path d="M6 15 Q15 15 15 6"/><path d="M25 6 Q25 15 34 15"/><path d="M6 25 Q15 25 15 34"/><path d="M34 25 Q25 25 25 34"/></g></svg>`;
 const TORNADO_SVG = `<svg viewBox="0 0 70 75" width="100%" height="100%"><path d="${tornadoPath(5)}" fill="none" stroke="#1e1e1e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const SPIKE_SVG = `<svg viewBox="0 0 50 28" width="100%" height="100%"><path d="M4 25 L12 8 L18 19 L25 3 L32 19 L38 8 L46 25" fill="none" stroke="#1e1e1e" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const SWEAT_MARKS_SVG = `<svg viewBox="-2 -2 56 50" width="100%" height="100%"><path d="${sweatMarksPath()}" fill="none" stroke="#1e1e1e" stroke-width="3.6" stroke-linecap="round"/></svg>`;
-const SKULL_SVG = `<svg viewBox="0 0 100 90" width="100%" height="100%">
-<path d="M20 70 C5 70 4 51 18 46 C12 30 30 19 40 28 C45 11 68 11 72 28 C86 21 99 38 88 50 C100 58 93 77 78 72 C72 85 52 85 46 76 C38 85 21 83 20 70 Z" fill="#fff" stroke="#36b336" stroke-width="5" stroke-linejoin="round"/>
-<g stroke="#111" stroke-width="7" stroke-linecap="round"><path d="M25 66 L75 30"/><path d="M25 30 L75 66"/></g>
-<g fill="#111"><circle cx="22" cy="69" r="5"/><circle cx="28" cy="62" r="5"/><circle cx="78" cy="27" r="5"/><circle cx="72" cy="34" r="5"/>
-<circle cx="22" cy="27" r="5"/><circle cx="28" cy="34" r="5"/><circle cx="78" cy="69" r="5"/><circle cx="72" cy="62" r="5"/>
-<circle cx="50" cy="42" r="17"/><rect x="40" y="50" width="20" height="13" rx="3"/></g>
-<g fill="#fff"><circle cx="43.5" cy="41" r="5.5"/><circle cx="56.5" cy="41" r="5.5"/><path d="M50 47 L47 53 L53 53 Z"/></g>
-<g stroke="#fff" stroke-width="1.6"><path d="M45 56 V63"/><path d="M50 56 V63"/><path d="M55 56 V63"/></g>
-<g fill="#e22"><path d="M16 22 L36 30 L30 22 Z"/><path d="M84 22 L64 30 L70 22 Z"/></g></svg>`;
+const SWEAT_MARKS_SVG = `<svg viewBox="0 0 132 96" width="100%" height="100%"><path d="${sweatMarksPath()}" fill="none" stroke="#1e1e1e" stroke-width="5.5" stroke-linecap="round"/></svg>`;
 const BURST_SVG = `<svg viewBox="0 0 60 60" width="100%" height="100%"><polygon points="${burstPoints(11, 29, 13, 30)}" fill="#fff" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"/></svg>`;
 const BULB_SVG = `<svg viewBox="0 0 48 48" width="100%" height="100%"><g stroke="#e0a800" stroke-width="2.5" stroke-linecap="round">
 <path d="M24 2 L24 6"/><path d="M8 8 L11 11"/><path d="M40 8 L37 11"/><path d="M2 21 L6 21"/><path d="M46 21 L42 21"/></g>
@@ -218,7 +229,7 @@ const EFFECTS = {
         play(L, u, d) {
             AROUND_FACE.slice(0, 6).forEach(([x, y], i) => {
                 const dx = (i % 2 ? 1 : -1) * u * 0.4;
-                run(place(L, glyph(i % 3 === 1 ? '♫' : '♪', '#5ab4ff', u * (i % 2 ? 1.4 : 1.7), true), x, y),
+                run(place(L, (i % 3 === 1 ? svg(iconNotes('#5ab4ff'), u * 1.3, u * 1.3) : svg(iconNote('#5ab4ff'), u * (i % 2 ? 0.95 : 1.1), u * (i % 2 ? 1.2 : 1.4))), x, y),
                     [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.2, 1, -12, 1, 0.15), pf(dx, -u * 0.7, 1, 12, 1, 0.55), pf(-dx * 0.5, -u * 1.3, 0.9, -8, 0)],
                     d * 0.65, i * d * 0.07);
             });
@@ -226,7 +237,7 @@ const EFFECTS = {
     sparkle: { label: '반짝', hint: 'delighted, proud, dazzling, beautiful, a magical moment', dur: 1800,
         play(L, u, d) {
             AROUND_FACE.forEach(([x, y], i) => {
-                const el = place(L, glyph('✦', '#fff6b0', u * [1.8, 1.3, 1.5, 1.9, 1.2, 1.6, 1.4, 1.2][i]), x, y);
+                const el = place(L, svg(iconSparkle('#fff3a0'), u * [1.3, 0.9, 1.1, 1.4, 0.85, 1.15, 1, 0.85][i], u * [1.3, 0.9, 1.1, 1.4, 0.85, 1.15, 1, 0.85][i]), x, y);
                 el.classList.add('am-glow');
                 run(el, [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 45, 1, 0.4), pf(0, 0, 0, 90, 0)], d * 0.5, ((i * 3) % 8) * d * 0.06);
             });
@@ -235,24 +246,24 @@ const EFFECTS = {
         play(L, u, d) {
             AROUND_FACE.slice(0, 6).forEach(([x, y], i) => {
                 const sway = (i % 2 ? 1 : -1) * u * 0.3;
-                run(place(L, glyph('♥︎', '#ff6b9e', u * (i % 3 ? 1.3 : 1.6)), x, y),
+                run(place(L, svg(iconHeart('#ff6b9e'), u * (i % 3 ? 1.0 : 1.25), u * (i % 3 ? 0.95 : 1.19)), x, y),
                     [pf(0, 0, 0.2, 0, 0), pf(0, -u * 0.2, 1.1, 0, 1, 0.2), pf(sway, -u * 0.7, 1, -8, 1, 0.6), pf(-sway * 0.5, -u * 1.3, 0.9, 8, 0)],
                     d * 0.65, i * d * 0.07);
             });
         } },
     question: { label: '물음표', hint: 'confused, puzzled, wondering, not understanding', dur: 1800,
         play(L, u, d) {
-            run(place(L, glyph('?', '#ffd54a', u * 1.9, true), 70, 18),
+            run(place(L, svg(iconQuestion('#ffd54a'), u * 1.3, u * 1.55), 70, 18),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.25, 0, 1, 0.15), pf(0, 0, 1, -14, 1, 0.3), pf(0, 0, 1, 12, 1, 0.45),
                     pf(0, 0, 1, -6, 1, 0.6), pf(0, 0, 1, 0, 1, 0.85), pf(0, -u * 0.3, 1, 0, 0)], d);
-            run(place(L, glyph('?', '#ffd54a', u * 1.2, true), 58, 24),
+            run(place(L, svg(iconQuestion('#ffd54a'), u * 0.85, u * 1.0), 58, 24),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 0, 1, 0.2), pf(0, 0, 1, 10, 1, 0.4), pf(0, 0, 1, 0, 1, 0.8), pf(0, -u * 0.3, 1, 0, 0)],
                 d * 0.85, d * 0.15);
         } },
     exclaim: { label: '느낌표', hint: 'surprised, alarmed, suddenly noticing something', dur: 1400,
         play(L, u, d) {
             const j = u * 0.08;
-            run(place(L, glyph('!', '#ff4d4d', u * 2.0, true), 70, 18),
+            run(place(L, svg(iconExclaim('#ff4d4d'), u * 0.95, u * 1.65), 70, 18),
                 [pf(0, u * 0.3, 0, 0, 0), pf(0, 0, 1.4, 0, 1, 0.12), pf(0, 0, 1, 0, 1, 0.25), pf(-j * 2, 0, 1, -6, 1, 0.32),
                     pf(j * 2, 0, 1, 6, 1, 0.39), pf(-j, 0, 1, -3, 1, 0.46), pf(0, 0, 1, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d);
         } },
@@ -266,7 +277,7 @@ const EFFECTS = {
         } },
     cold_sweat: { label: '식은땀', hint: 'breaking into a cold sweat, flustered, awkward panic, nervously cornered', dur: 1800,
         play(L, u, d) {
-            const el = place(L, svg(SWEAT_MARKS_SVG, u * 1.4, u * 1.25), 30, 10);
+            const el = place(L, svg(SWEAT_MARKS_SVG, u * 2.4, u * 1.75), 24, 12);
             el.classList.add('am-ink');
             const j = u * 0.03;
             run(el, [pf(0, 0, 0.8, 0, 0), pf(0, 0, 1, 0, 1, 0.15), pf(-j, 0, 1, 0, 1, 0.3), pf(j, 0, 1, 0, 1, 0.4), pf(-j, 0, 1, 0, 1, 0.5),
@@ -289,8 +300,8 @@ const EFFECTS = {
         } },
     zzz: { label: '졸림', hint: 'sleepy, tired, bored, dozing off', dur: 2400,
         play(L, u, d) {
-            [['Z', 1.8], ['z', 1.4], ['z', 1.1]].forEach(([g, s], i) => {
-                run(place(L, glyph(g, '#c9d3ff', u * s, true), 62, 24),
+            [1.1, 0.85, 0.7].forEach((s, i) => {
+                run(place(L, svg(iconZ('#c9d3ff'), u * s, u * s), 62, 24),
                     [pf(0, 0, 0.4, 0, 0), pf(u * 0.3, -u * 0.4, 1, -10, 1, 0.25), pf(u * 1.1, -u * 1.3, 1, -15, 1, 0.7), pf(u * 1.5, -u * 1.9, 0.9, -20, 0)],
                     d * 0.6, i * d * 0.2);
             });
@@ -304,8 +315,8 @@ const EFFECTS = {
         } },
     dizzy: { label: '멘탈붕괴', hint: 'mentally shattered, overwhelmed, dizzy, head spinning in confusion', dur: 2400,
         play(L, u, d) {
-            // Off to the side of the head, the way comics draw it
-            const el = place(L, svg(TORNADO_SVG, u * 1.0, u * 1.07), 74, 16);
+            // Left of the head with the thin tail pointing toward it, the way comics draw it
+            const el = place(L, svg(TORNADO_SVG, u * 1.0, u * 1.07), 26, 16);
             el.classList.add('am-ink');
             run(el, [pf(0, 0, 0.3, 0, 0), pf(0, 0, 1.05, -6, 1, 0.15), pf(0, 0, 0.95, 6, 1, 0.3), pf(0, 0, 1.05, -6, 1, 0.45),
                 pf(0, 0, 0.95, 6, 1, 0.6), pf(0, 0, 1.03, -4, 1, 0.75), pf(0, -u * 0.2, 1, 0, 0)], d, 0, 'ease-in-out');
@@ -326,7 +337,10 @@ const EFFECTS = {
         play(L, u, d) {
             // Two stamps fly in one after another and slam onto the picture
             [[30, 64, 0, 1.9, -12, -1], [70, 30, 0.18, 1.5, 10, 1]].forEach(([x, y, delay, s, r, side]) => {
-                run(place(L, svg(SKULL_SVG, u * s, u * s * 0.9), x, y),
+                const stamp = document.createElement('span');
+                stamp.className = 'am-p am-skull';
+                stamp.style.width = stamp.style.height = `${u * s}px`;
+                run(place(L, stamp, x, y),
                     [pf(side * u * 3, -u * 2, 2.4, r - side * 40, 0), pf(0, 0, 0.9, r, 1, 0.12), pf(0, 0, 1.08, r, 1, 0.18),
                         pf(0, 0, 1, r, 1, 0.24), pf(0, 0, 1, r, 1, 0.85), pf(0, 0, 1, r, 0)],
                     d * (1 - delay), d * delay, 'ease-out');
@@ -382,13 +396,10 @@ const EFFECTS = {
         } },
     gloom: { label: '안색 어두움', hint: 'feeling sick, dread, despair, depressed, mortified', dur: 3200,
         play(L, u, d) {
-            // Over the upper part of the face only, fading out at the sides
-            const sides = 'linear-gradient(to right, transparent 12%, #000 28%, #000 72%, transparent 88%)';
-            veil(L, 'linear-gradient(to bottom, rgba(72, 28, 120, 0.85), rgba(96, 52, 160, 0.45) 22%, rgba(96, 52, 160, 0) 45%)', HOLD, d,
-                { maskImage: sides, webkitMaskImage: sides });
-            const mask = `linear-gradient(to bottom, #000, transparent 32%), ${sides}`;
+            veil(L, 'linear-gradient(to bottom, rgba(72, 28, 120, 0.85), rgba(96, 52, 160, 0.45) 22%, rgba(96, 52, 160, 0) 45%)', HOLD, d);
+            const mask = 'linear-gradient(to bottom, #000, transparent 32%)';
             veil(L, 'repeating-linear-gradient(90deg, rgba(30, 0, 60, 0.5) 0 2px, transparent 2px 9px)', HOLD, d,
-                { maskImage: mask, webkitMaskImage: mask, maskComposite: 'intersect', webkitMaskComposite: 'source-in' });
+                { maskImage: mask, webkitMaskImage: mask });
         } },
     flash: { label: '번쩍', hint: 'sudden realization, a blinding flash, a striking impact', dur: 700,
         play(L, u, d) {
@@ -405,14 +416,6 @@ const EFFECTS = {
         } },
 };
 
-function glyph(text, color, size, bold = false) {
-    const el = document.createElement('span');
-    el.className = bold ? 'am-p am-bold' : 'am-p';
-    el.textContent = text;
-    el.style.color = color;
-    el.style.fontSize = `${size}px`;
-    return el;
-}
 function svg(markup, width, height) {
     const el = document.createElement('span');
     el.className = 'am-p';
