@@ -169,29 +169,27 @@ function tornadoPath(turns) {
     }
     return d;
 }
-// Cold-sweat hooks laid out like the reference: three diagonal rows of three, rising to the right
+// Cold-sweat marks: a straight fish-scale pattern (3 staggered rows of 3); the whole patch is tilted when placed
 function sweatMarksPath() {
     let d = '';
-    for (let j = 0; j < 3; j++) {
-        for (let i = 0; i < 3; i++) {
-            const x = 11 + i * 27 + j * 21;
-            const y = 41 - i * 15 + j * 20;
-            // Symmetric arch, like a fish scale
-            d += `M${x - 7} ${y + 7} C${x - 7} ${y - 9} ${x + 7} ${y - 9} ${x + 7} ${y + 7} `;
+    for (let row = 0; row < 3; row++) {
+        for (let col = 0; col < 3; col++) {
+            const x = 10 + col * 28 + (row % 2) * 14;
+            const y = 12 + row * 21;
+            d += `M${x - 6} ${y + 6} C${x - 6} ${y - 8} ${x + 6} ${y - 8} ${x + 6} ${y + 6} `;
         }
     }
     return d.trim();
 }
 // Icons drawn as SVG so font-replacing extensions can't change them
 const OUTLINE = '#2a2a2a';
-// Cute round notes: plump heads with a small shine, no outline
+// Cute round notes: plump heads, no outline
 const iconNote = c => `<svg viewBox="0 0 40 50" width="100%" height="100%"><g fill="${c}">
 <rect x="22" y="5" width="5" height="34" rx="2.5"/><ellipse cx="16" cy="39" rx="11" ry="9" transform="rotate(-18 16 39)"/>
-<path d="M25 5 C33 7 39 13 36 23 C34 18 30 16 25 16 Z"/></g><ellipse cx="12" cy="36" rx="3.5" ry="2.2" fill="#fff" opacity="0.7" transform="rotate(-18 12 36)"/></svg>`;
+<path d="M25 5 C33 7 39 13 36 23 C34 18 30 16 25 16 Z"/></g></svg>`;
 const iconNotes = c => `<svg viewBox="0 0 52 50" width="100%" height="100%"><g fill="${c}">
 <rect x="17" y="10" width="5" height="30" rx="2.5"/><rect x="41" y="4" width="5" height="30" rx="2.5"/><path d="M17 10 L46 4 V12 L17 18 Z"/>
-<ellipse cx="11" cy="40" rx="10" ry="8" transform="rotate(-18 11 40)"/><ellipse cx="35" cy="34" rx="10" ry="8" transform="rotate(-18 35 34)"/></g>
-<g fill="#fff" opacity="0.7"><ellipse cx="7" cy="37" rx="3" ry="2" transform="rotate(-18 7 37)"/><ellipse cx="31" cy="31" rx="3" ry="2" transform="rotate(-18 31 31)"/></g></svg>`;
+<ellipse cx="11" cy="40" rx="10" ry="8" transform="rotate(-18 11 40)"/><ellipse cx="35" cy="34" rx="10" ry="8" transform="rotate(-18 35 34)"/></g></svg>`;
 const iconDrop = () => `<svg viewBox="0 0 20 36" width="100%" height="100%"><defs><linearGradient id="am-drop-g" x1="0" y1="0" x2="0.6" y2="1">
 <stop offset="0" stop-color="#e6f7ff"/><stop offset="1" stop-color="#4fb0ee"/></linearGradient></defs>
 <path d="M10 1 C13 11 19 18 19 25 C19 31 15 35 10 35 C5 35 1 31 1 25 C1 18 7 11 10 1 Z" fill="url(#am-drop-g)" stroke="#fff" stroke-width="1.5"/></svg>`;
@@ -218,7 +216,7 @@ const ANGER_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g fill="
 <path d="M6 15 Q15 15 15 6"/><path d="M25 6 Q25 15 34 15"/><path d="M6 25 Q15 25 15 34"/><path d="M34 25 Q25 25 25 34"/></g></svg>`;
 const TORNADO_SVG = `<svg viewBox="0 0 70 75" width="100%" height="100%"><path d="${tornadoPath(5)}" fill="none" stroke="#1e1e1e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const SPIKE_SVG = `<svg viewBox="0 0 50 28" width="100%" height="100%"><path d="M4 25 L12 8 L18 19 L25 3 L32 19 L38 8 L46 25" fill="none" stroke="#1e1e1e" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const SWEAT_MARKS_SVG = `<svg viewBox="0 0 132 96" width="100%" height="100%"><path d="${sweatMarksPath()}" fill="none" stroke="#1e1e1e" stroke-width="5.5" stroke-linecap="round"/></svg>`;
+const SWEAT_MARKS_SVG = `<svg viewBox="0 0 96 66" width="100%" height="100%"><path d="${sweatMarksPath()}" fill="none" stroke="#1e1e1e" stroke-width="4.5" stroke-linecap="round"/></svg>`;
 const BURST_SVG = `<svg viewBox="0 0 60 60" width="100%" height="100%"><polygon points="${burstPoints(11, 29, 13, 30)}" fill="#fff" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"/></svg>`;
 const BULB_SVG = `<svg viewBox="0 0 48 48" width="100%" height="100%"><g stroke="#e0a800" stroke-width="2.5" stroke-linecap="round">
 <path d="M24 2 L24 6"/><path d="M8 8 L11 11"/><path d="M40 8 L37 11"/><path d="M2 21 L6 21"/><path d="M46 21 L42 21"/></g>
@@ -287,11 +285,12 @@ const EFFECTS = {
         } },
     cold_sweat: { label: '식은땀', hint: 'breaking into a cold sweat, flustered, awkward panic, nervously cornered', dur: 1800,
         play(L, u, d) {
-            const el = place(L, svg(SWEAT_MARKS_SVG, u * 1.8, u * 1.31), 24, 12);
+            const el = place(L, svg(SWEAT_MARKS_SVG, u * 1.7, u * 1.17), 24, 14);
             el.classList.add('am-ink');
             const j = u * 0.03;
-            run(el, [pf(0, 0, 0.8, 0, 0), pf(0, 0, 1, 0, 1, 0.15), pf(-j, 0, 1, 0, 1, 0.3), pf(j, 0, 1, 0, 1, 0.4), pf(-j, 0, 1, 0, 1, 0.5),
-                pf(j, 0, 1, 0, 1, 0.6), pf(0, 0, 1, 0, 1, 0.8), pf(0, u * 0.1, 1, 0, 0)], d);
+            const r = -30; // tilt the patch so the rows rise to the right
+            run(el, [pf(0, 0, 0.8, r, 0), pf(0, 0, 1, r, 1, 0.15), pf(-j, 0, 1, r, 1, 0.3), pf(j, 0, 1, r, 1, 0.4), pf(-j, 0, 1, r, 1, 0.5),
+                pf(j, 0, 1, r, 1, 0.6), pf(0, 0, 1, r, 1, 0.8), pf(0, u * 0.1, 1, r, 0)], d);
         } },
     sweat: { label: '땀', hint: 'nervous, awkward, embarrassed, an uh-oh moment', dur: 1600,
         play(L, u, d) {
