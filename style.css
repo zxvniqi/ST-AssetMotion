@@ -1,3 +1,124 @@
+#asset_motion_settings .am-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+#asset_motion_settings .am-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+#asset_motion_settings .am-row select,
+#asset_motion_settings .am-row input[type="range"] {
+    flex: 1;
+    max-width: 60%;
+}
+
+#asset_motion_settings .am-num {
+    width: 70px;
+    flex: none;
+}
+
+#asset_motion_settings .am-section {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+    padding-top: 6px;
+    border-top: 1px solid var(--SmartThemeBorderColor);
+}
+
+#asset_motion_settings .am-section textarea {
+    font-family: monospace;
+    font-size: 0.85em;
+}
+
+#asset_motion_settings .am-preview {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 150px;
+    overflow: hidden;
+}
+
+/* Stand-in for an asset picture: a plain rectangle */
+#asset_motion_settings .am-preview-target {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 96px;
+    height: 120px;
+    border-radius: 6px;
+    background: linear-gradient(160deg, #8a9bb8, #4d5a73);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 32px;
+}
+
+#asset_motion_settings .am-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+#asset_motion_settings .am-chip {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3px 8px;
+    border: 1px solid var(--SmartThemeBorderColor);
+    border-radius: 8px;
+    cursor: pointer;
+    user-select: none;
+    line-height: 1.2;
+}
+
+#asset_motion_settings .am-chip small {
+    opacity: 0.55;
+    font-size: 0.7em;
+}
+
+#asset_motion_settings .am-chip:hover {
+    background: var(--white30a);
+}
+
+/* Effect layer laid over an asset picture */
+.am-fx-layer {
+    position: absolute;
+    display: block;
+    pointer-events: none;
+    z-index: 5;
+    overflow: visible;
+}
+
+.am-fx-layer .am-p {
+    position: absolute;
+    display: block;
+    line-height: 1;
+    font-weight: 900;
+    white-space: nowrap;
+    filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
+}
+
+.am-fx-layer .am-glow {
+    filter: drop-shadow(0 0 4px #ffe680) drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+}
+
+.am-fx-layer .am-drop {
+    border-radius: 50% 0 50% 50%;
+    background: linear-gradient(135deg, #e2f6ff, #5ab8f0);
+    border: 1.5px solid #fff;
+}
+
+.am-fx-layer .am-veil {
+    position: absolute;
+    inset: 0;
+    display: block;
+    border-radius: inherit;
+}
 #asset_motion_settings .am-content {
     display: flex;
     flex-direction: column;
