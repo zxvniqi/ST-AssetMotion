@@ -41,21 +41,22 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 150px;
+    height: 190px;
     overflow: hidden;
 }
 
-/* Stand-in for an asset picture: a plain rectangle */
+/* Stand-in for an asset picture: a landscape rectangle with the face in the middle */
 #asset_motion_settings .am-preview-target {
     display: flex;
     justify-content: center;
     align-items: center;
-    width: 96px;
-    height: 120px;
+    width: 220px;
+    max-width: 80%;
+    height: 130px;
     border-radius: 6px;
     background: linear-gradient(160deg, #8a9bb8, #4d5a73);
     color: rgba(255, 255, 255, 0.6);
-    font-size: 32px;
+    font-size: 48px;
 }
 
 #asset_motion_settings .am-chips {
@@ -66,14 +67,29 @@
 
 #asset_motion_settings .am-chip {
     display: inline-flex;
-    flex-direction: column;
     align-items: center;
-    padding: 3px 8px;
+    gap: 4px;
+    padding: 3px 8px 3px 4px;
     border: 1px solid var(--SmartThemeBorderColor);
     border-radius: 8px;
     cursor: pointer;
     user-select: none;
     line-height: 1.2;
+}
+
+#asset_motion_settings .am-chip-on {
+    margin: 0;
+}
+
+#asset_motion_settings .am-chip-text {
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+#asset_motion_settings .am-chip:has(.am-chip-on:not(:checked)) .am-chip-text {
+    opacity: 0.4;
+    text-decoration: line-through;
 }
 
 #asset_motion_settings .am-chip small {
@@ -105,6 +121,35 @@
 
 .am-fx-layer .am-glow {
     filter: drop-shadow(0 0 4px #ffe680) drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+}
+
+.am-fx-layer .am-ink {
+    filter: drop-shadow(0 0 1.5px #fff) drop-shadow(0 0 1.5px #fff);
+}
+
+.am-fx-layer .am-shine {
+    filter: drop-shadow(0 0 6px #fff3a0) drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
+}
+
+.am-fx-layer .am-bokeh {
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.25) 70%, rgba(255, 255, 255, 0) 100%);
+    filter: blur(1px);
+}
+
+.am-fx-layer .am-ring {
+    background: none;
+    border: 2px solid rgba(255, 255, 255, 0.7);
+    box-shadow: 0 0 6px rgba(255, 255, 255, 0.6), inset 0 0 6px rgba(255, 255, 255, 0.4);
+}
+
+.am-fx-layer .am-rays {
+    position: absolute;
+    width: 250%;
+    aspect-ratio: 1;
+    background: repeating-conic-gradient(rgba(255, 235, 170, 0.45) 0deg 4deg, transparent 4deg 14deg);
+    -webkit-mask-image: radial-gradient(circle, transparent 12%, #000 20%, transparent 34%);
+    mask-image: radial-gradient(circle, transparent 12%, #000 20%, transparent 34%);
 }
 
 .am-fx-layer .am-drop {
