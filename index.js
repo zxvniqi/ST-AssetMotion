@@ -18,13 +18,13 @@ const DEFAULT_RULES = `# 파일명 패턴 = 모션 효과   (* 는 아무 글자
 *smile* = sparkle
 *sad* = gloom
 *cry* = tremble
-*surprise* = jump exclaim
-*shy* = jelly blush
+*surprise* = jump startle
+*shy* = jelly
 *love* = heartbeat hearts
 *confus* = question`;
 
-// Default rules shipped in 1.0.0; replaced automatically because they use removed motions
-const LEGACY_DEFAULT_RULES = `# 파일명 패턴 = 모션   (* 는 아무 글자, 위에서부터 먼저 맞는 줄 적용)
+// Default rules shipped in earlier versions; replaced automatically because they use removed names
+const LEGACY_DEFAULT_RULES = [`# 파일명 패턴 = 모션   (* 는 아무 글자, 위에서부터 먼저 맞는 줄 적용)
 *angry* = rattle
 *happy* = bounce
 *smile* = bounce
@@ -33,7 +33,16 @@ const LEGACY_DEFAULT_RULES = `# 파일명 패턴 = 모션   (* 는 아무 글자
 *surprise* = jump
 *shy* = jelly
 *love* = heartbeat
-* = pop`;
+* = pop`, `# 파일명 패턴 = 모션 효과   (* 는 아무 글자, 위에서부터 먼저 맞는 줄 적용, 모션·효과 중 하나만 써도 됨)
+*angry* = rattle anger
+*happy* = bounce
+*smile* = sparkle
+*sad* = gloom
+*cry* = tremble
+*surprise* = jump exclaim
+*shy* = jelly blush
+*love* = heartbeat hearts
+*confus* = question`];
 
 const defaultSettings = Object.freeze({
     enabled: true,
@@ -44,6 +53,10 @@ const defaultSettings = Object.freeze({
     speed: 1,
     rules: DEFAULT_RULES,
     depth: 1,
+    motionsEnabled: true,
+    effectsEnabled: true,
+    disabledMotions: [],
+    disabledEffects: [],
 });
 
 // k = intensity multiplier. tf = transform keyframes (added on top of existing transform).
@@ -81,14 +94,8 @@ const MOTIONS = {
     pop: { label: '뿅', hint: 'sudden appearance, an idea, a cute entrance', dur: 500,
         tf: k => [sc(0.3), sc(1 + 0.12 * k, 0.6), sc(0.95, 0.8), sc(1)],
         fx: [{ opacity: 0 }, { opacity: 1, offset: 0.4 }, { opacity: 1 }] },
-    jump: { label: '깜짝', hint: 'startled, surprised, shocked', dur: 600,
-        tf: k => [
-            { transform: 'translateY(0) scale(1)' },
-            { transform: `translateY(${-22 * k}px) scale(${1 + 0.06 * k})`, offset: 0.2 },
-            { transform: 'translateY(0) scale(1)', offset: 0.45 },
-            { transform: `translateY(${-4 * k}px) scale(1)`, offset: 0.6 },
-            { transform: 'translateY(0) scale(1)' },
-        ] },
+    jump: { label: '깜짝', hint: 'startled, surprised, shocked', dur: 650,
+        tf: k => [ty(0), ty(-18 * k, 0.22), ty(0, 0.5), ty(-4 * k, 0.65), ty(0)] },
     drop: { label: '쿵', hint: 'heavy landing, dramatic entrance, slamming down', dur: 700,
         tf: k => [
             { transform: `translateY(${-60 * k}px) scale(1, 1)`, easing: 'ease-in' },
@@ -103,8 +110,6 @@ const MOTIONS = {
             .map(([x, y, o]) => ({ transform: `scale(${x}, ${y})`, offset: o })) },
     float: { label: '둥실', hint: 'dreamy, calm, magical, floating', dur: 3000, loop: true,
         tf: k => [ty(0), ty(-8 * k, 0.5), ty(0)] },
-    spin: { label: '빙글', hint: 'dizzy, twirling with joy, spinning', dur: 700,
-        tf: () => [rot(0), rot(360)] },
     flip: { label: '휙', hint: 'reveal, transformation, a sudden change', dur: 800,
         tf: () => [{ transform: 'perspective(600px) rotateY(0deg)' }, { transform: 'perspective(600px) rotateY(360deg)' }] },
     fade: { label: '스르륵', hint: 'quiet, gentle, melancholic, appearing softly', dur: 1200,
@@ -137,58 +142,112 @@ function jitter(steps, amp, rotAmp) {
 }
 
 // --- effects: things that appear over the picture ---
+// Assets are mostly landscape pictures with the face near the center (FACE_X, FACE_Y in %).
+
+const FACE_X = 50;
+const FACE_Y = 45;
+
+function spiralPath(turns, size) {
+    const steps = turns * 24;
+    const c = size / 2;
+    let d = '';
+    for (let i = 0; i <= steps; i++) {
+        const t = (i / 24) * 2 * Math.PI;
+        const r = (i / steps) * (c - 2);
+        d += `${i ? 'L' : 'M'}${(c + r * Math.cos(t)).toFixed(1)} ${(c + r * Math.sin(t)).toFixed(1)}`;
+    }
+    return d;
+}
+function burstPoints(n, outer, inner, c) {
+    const pts = [];
+    for (let i = 0; i < n * 2; i++) {
+        const r = i % 2 ? inner : outer * (0.8 + 0.2 * ((i * 7) % 5) / 4);
+        const a = (i / (n * 2)) * 2 * Math.PI;
+        pts.push(`${(c + r * Math.cos(a)).toFixed(1)},${(c + r * Math.sin(a)).toFixed(1)}`);
+    }
+    return pts.join(' ');
+}
 
 const ANGER_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g fill="none" stroke="#ff3b3b" stroke-width="5" stroke-linecap="round">
 <path d="M6 15 Q15 15 15 6"/><path d="M25 6 Q25 15 34 15"/><path d="M6 25 Q15 25 15 34"/><path d="M34 25 Q25 25 25 34"/></g></svg>`;
+const SPIRAL_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><path d="${spiralPath(3, 40)}" fill="none" stroke="#3b3550" stroke-width="2.6" stroke-linecap="round"/></svg>`;
+const SPIKE_SVG = `<svg viewBox="0 0 52 34" width="100%" height="100%"><path d="M3 31 L11 6 L19 27 L26 3 L33 27 L41 6 L49 31" fill="none" stroke="#1e1e1e" stroke-width="4" stroke-linejoin="miter"/></svg>`;
+const DASH_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g stroke="#1e1e1e" stroke-width="4" stroke-linecap="round">
+<path d="M8 30 L14 8"/><path d="M19 32 L24 10"/><path d="M30 34 L34 12"/></g></svg>`;
+const BURST_SVG = `<svg viewBox="0 0 60 60" width="100%" height="100%"><polygon points="${burstPoints(11, 29, 13, 30)}" fill="#fff" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"/>
+<polygon points="${burstPoints(9, 17, 8, 30)}" fill="#ffe04a"/></svg>`;
+const BULB_SVG = `<svg viewBox="0 0 48 48" width="100%" height="100%"><g stroke="#e0a800" stroke-width="2.5" stroke-linecap="round">
+<path d="M24 2 L24 6"/><path d="M8 8 L11 11"/><path d="M40 8 L37 11"/><path d="M2 21 L6 21"/><path d="M46 21 L42 21"/></g>
+<circle cx="24" cy="21" r="11" fill="#ffe66d" stroke="#8a6d00" stroke-width="2"/>
+<path d="M20 22 Q22 17 24 22 Q26 17 28 22" fill="none" stroke="#c48a00" stroke-width="1.5"/>
+<rect x="18.5" y="31" width="11" height="9" rx="2" fill="#cfcfcf" stroke="#666" stroke-width="1.5"/><path d="M19 34.5 H29 M19 37.5 H29" stroke="#888" stroke-width="1"/></svg>`;
+const BANDAGE_BAND = '<rect x="2" y="14" width="36" height="12" rx="6" fill="#f2cfa5" stroke="#b5835a" stroke-width="1.5"/><rect x="15" y="14" width="10" height="12" fill="#fae6cf" stroke="#b5835a" stroke-width="1"/>';
+const BANDAGE_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g transform="rotate(45 20 20)">${BANDAGE_BAND}</g><g transform="rotate(-45 20 20)">${BANDAGE_BAND}</g></svg>`;
+const GHOST_SVG = `<svg viewBox="0 0 40 56" width="100%" height="100%"><path d="M20 3 C31 3 36 12 35 21 C34 32 28 39 24 46 C22 50 24 53 28 55 C19 55 14 50 15 44 C16 38 6 32 5 21 C4 11 9 3 20 3 Z" fill="rgba(255,255,255,0.88)" stroke="#9aa6b8" stroke-width="1.5"/>
+<ellipse cx="15" cy="18" rx="2" ry="3" fill="#444"/><ellipse cx="25" cy="18" rx="2" ry="3" fill="#444"/><ellipse cx="20" cy="26" rx="2.5" ry="3" fill="#666"/></svg>`;
 const HOLD = [{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }];
+// Spots all around the face for notes / sparkles / hearts
+const AROUND_FACE = [[24, 26], [76, 22], [18, 54], [82, 52], [36, 10], [64, 8], [30, 78], [70, 80]];
 
 // play(layer, unit px, duration ms). Positions are % of the picture box.
 const EFFECTS = {
-    notes: { label: '음표', hint: 'singing, humming, music, a carefree good mood', dur: 2000,
+    notes: { label: '음표', hint: 'singing, humming, music, a carefree good mood', dur: 2400,
         play(L, u, d) {
-            [['♪', 70, 24], ['♫', 82, 16], ['♪', 62, 12]].forEach(([g, x, y], i) => {
-                const dx = (i % 2 ? 1 : -1) * u * 0.5;
-                run(place(L, glyph(g, '#8fd3ff', u), x, y),
-                    [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.3, 1, -12, 1, 0.15), pf(dx, -u * 1.2, 1, 12, 1, 0.55), pf(-dx * 0.5, -u * 2.2, 0.9, -8, 0)],
-                    d * 0.75, i * d * 0.12);
+            AROUND_FACE.slice(0, 6).forEach(([x, y], i) => {
+                const dx = (i % 2 ? 1 : -1) * u * 0.4;
+                run(place(L, glyph(i % 3 === 1 ? '♫' : '♪', '#8fd3ff', u * (i % 2 ? 0.9 : 1.1)), x, y),
+                    [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.2, 1, -12, 1, 0.15), pf(dx, -u * 0.7, 1, 12, 1, 0.55), pf(-dx * 0.5, -u * 1.3, 0.9, -8, 0)],
+                    d * 0.65, i * d * 0.07);
+            });
+        } },
+    sparkle: { label: '반짝', hint: 'delighted, proud, dazzling, beautiful, a magical moment', dur: 1800,
+        play(L, u, d) {
+            AROUND_FACE.forEach(([x, y], i) => {
+                const el = place(L, glyph('✦', '#fff6b0', u * [1.1, 0.8, 0.9, 1.2, 0.7, 1, 0.85, 0.75][i]), x, y);
+                el.classList.add('am-glow');
+                run(el, [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 45, 1, 0.4), pf(0, 0, 0, 90, 0)], d * 0.5, ((i * 3) % 8) * d * 0.06);
+            });
+        } },
+    hearts: { label: '하트', hint: 'love, affection, adoration, being smitten', dur: 2200,
+        play(L, u, d) {
+            AROUND_FACE.slice(0, 6).forEach(([x, y], i) => {
+                const sway = (i % 2 ? 1 : -1) * u * 0.3;
+                run(place(L, glyph('♥︎', '#ff6b9e', u * (i % 3 ? 0.9 : 1.2)), x, y),
+                    [pf(0, 0, 0.2, 0, 0), pf(0, -u * 0.2, 1.1, 0, 1, 0.2), pf(sway, -u * 0.7, 1, -8, 1, 0.6), pf(-sway * 0.5, -u * 1.3, 0.9, 8, 0)],
+                    d * 0.65, i * d * 0.07);
             });
         } },
     question: { label: '물음표', hint: 'confused, puzzled, wondering, not understanding', dur: 1800,
         play(L, u, d) {
-            run(place(L, glyph('?', '#ffd54a', u * 1.6), 80, 14),
+            run(place(L, glyph('?', '#ffd54a', u * 1.6), 68, 16),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.25, 0, 1, 0.15), pf(0, 0, 1, -14, 1, 0.3), pf(0, 0, 1, 12, 1, 0.45),
                     pf(0, 0, 1, -6, 1, 0.6), pf(0, 0, 1, 0, 1, 0.85), pf(0, -u * 0.3, 1, 0, 0)], d);
-            run(place(L, glyph('?', '#ffd54a', u * 0.9), 67, 22),
+            run(place(L, glyph('?', '#ffd54a', u * 0.9), 59, 24),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 0, 1, 0.2), pf(0, 0, 1, 10, 1, 0.4), pf(0, 0, 1, 0, 1, 0.8), pf(0, -u * 0.3, 1, 0, 0)],
                 d * 0.85, d * 0.15);
         } },
     exclaim: { label: '느낌표', hint: 'surprised, alarmed, suddenly noticing something', dur: 1400,
         play(L, u, d) {
             const j = u * 0.08;
-            run(place(L, glyph('!', '#ff4d4d', u * 1.7), 80, 14),
+            run(place(L, glyph('!', '#ff4d4d', u * 1.7), 68, 14),
                 [pf(0, u * 0.3, 0, 0, 0), pf(0, 0, 1.4, 0, 1, 0.12), pf(0, 0, 1, 0, 1, 0.25), pf(-j * 2, 0, 1, -6, 1, 0.32),
                     pf(j * 2, 0, 1, 6, 1, 0.39), pf(-j, 0, 1, -3, 1, 0.46), pf(0, 0, 1, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d);
         } },
-    sparkle: { label: '반짝', hint: 'delighted, proud, dazzling, beautiful, a magical moment', dur: 1600,
+    startle: { label: '깜짝(^^^)', hint: 'jolted with surprise, shocked, caught off guard', dur: 1300,
         play(L, u, d) {
-            [[18, 18, 0.9], [84, 12, 1.1], [72, 58, 0.7], [24, 72, 0.8], [52, 8, 0.6], [92, 46, 0.75]].forEach(([x, y, s], i) => {
-                const el = place(L, glyph('✦', '#fff6b0', u * s), x, y);
-                el.classList.add('am-glow');
-                run(el, [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 45, 1, 0.4), pf(0, 0, 0, 90, 0)], d * 0.55, i * d * 0.08);
+            [[35, 16, -35], [FACE_X, 8, 0], [65, 16, 35]].forEach(([x, y, r], i) => {
+                const el = place(L, svg(SPIKE_SVG, u * 1.2, u * 0.8), x, y);
+                el.classList.add('am-ink');
+                run(el, [pf(0, u * 0.3, 0.3, r, 0), pf(0, 0, 1.25, r, 1, 0.12), pf(0, 0, 1, r, 1, 0.25), pf(0, -u * 0.1, 1.05, r, 1, 0.4),
+                    pf(0, 0, 1, r, 1, 0.8), pf(0, -u * 0.2, 1, r, 0)], d, i * 40);
             });
-        } },
-    hearts: { label: '하트', hint: 'love, affection, adoration, being smitten', dur: 2000,
-        play(L, u, d) {
-            [[30, 55, 0.9], [55, 45, 1.2], [78, 58, 0.8], [45, 70, 0.7]].forEach(([x, y, s], i) => {
-                const sway = (i % 2 ? 1 : -1) * u * 0.4;
-                run(place(L, glyph('♥︎', '#ff6b9e', u * s), x, y),
-                    [pf(0, 0, 0.2, 0, 0), pf(0, -u * 0.4, 1.1, 0, 1, 0.2), pf(sway, -u * 1.4, 1, -8, 1, 0.6), pf(-sway * 0.5, -u * 2.4, 0.9, 8, 0)],
-                    d * 0.7, i * d * 0.1);
-            });
+            const dash = place(L, svg(DASH_SVG, u, u), 74, 30);
+            dash.classList.add('am-ink');
+            run(dash, [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 0, 1, 0.15), pf(0, 0, 1, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d * 0.9, d * 0.1);
         } },
     sweat: { label: '땀', hint: 'nervous, awkward, embarrassed, an uh-oh moment', dur: 1600,
         play(L, u, d) {
-            [[84, 16, 0.7, 0], [74, 26, 0.45, 0.25]].forEach(([x, y, s, delay]) => {
+            [[66, 20, 0.7, 0], [61, 30, 0.45, 0.25]].forEach(([x, y, s, delay]) => {
                 const drop = document.createElement('span');
                 drop.className = 'am-p am-drop';
                 drop.style.width = drop.style.height = `${u * s}px`;
@@ -199,31 +258,87 @@ const EFFECTS = {
         } },
     anger: { label: '빠직', hint: 'annoyed, irritated, angry, a vein popping', dur: 1500,
         play(L, u, d) {
-            const el = document.createElement('span');
-            el.className = 'am-p';
-            el.innerHTML = ANGER_SVG;
-            el.style.width = el.style.height = `${u * 1.4}px`;
-            run(place(L, el, 80, 15),
+            run(place(L, svg(ANGER_SVG, u * 1.4, u * 1.4), 67, 16),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.3, 0, 1, 0.15), pf(0, 0, 0.9, 0, 1, 0.3), pf(0, 0, 1.15, 0, 1, 0.45),
                     pf(0, 0, 0.95, 0, 1, 0.6), pf(0, 0, 1.05, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d);
         } },
     zzz: { label: '졸림', hint: 'sleepy, tired, bored, dozing off', dur: 2400,
         play(L, u, d) {
             [['Z', 1.1], ['z', 0.85], ['z', 0.7]].forEach(([g, s], i) => {
-                run(place(L, glyph(g, '#c9d3ff', u * s), 70, 24),
+                run(place(L, glyph(g, '#c9d3ff', u * s), 62, 24),
                     [pf(0, 0, 0.4, 0, 0), pf(u * 0.3, -u * 0.4, 1, -10, 1, 0.25), pf(u * 1.1, -u * 1.3, 1, -15, 1, 0.7), pf(u * 1.5, -u * 1.9, 0.9, -20, 0)],
                     d * 0.6, i * d * 0.2);
             });
         } },
-    ellipsis: { label: '말없음', hint: 'speechless, awkward silence, at a loss for words', dur: 2000,
+    idea: { label: '전구', hint: 'a sudden idea, realization, figuring something out', dur: 1800,
         play(L, u, d) {
-            [70, 79, 88].forEach((x, i) => {
-                const delay = i * d * 0.15;
-                const len = d - delay;
-                run(place(L, glyph('●', '#ffffff', u * 0.45), x, 14),
-                    [pf(0, 0, 0, 0, 0), pf(0, 0, 1.3, 0, 1, (0.1 * d) / len), pf(0, 0, 1, 0, 1, (0.18 * d) / len), pf(0, 0, 1, 0, 1, 0.85), pf(0, 0, 1, 0, 0)],
-                    len, delay);
+            const el = place(L, svg(BULB_SVG, u * 2.2, u * 2.2), 68, 16);
+            el.classList.add('am-shine');
+            run(el, [pf(0, u * 0.4, 0, 0, 0), pf(0, 0, 1.25, -8, 1, 0.15), pf(0, 0, 1, 6, 1, 0.3), pf(0, 0, 1.08, 0, 1, 0.45),
+                pf(0, 0, 1, 0, 1, 0.6), pf(0, 0, 1.08, 0, 1, 0.75), pf(0, -u * 0.2, 1, 0, 0)], d);
+        } },
+    dizzy: { label: '멘탈붕괴', hint: 'mentally shattered, overwhelmed, dizzy, head spinning in confusion', dur: 2400,
+        play(L, u, d) {
+            [[FACE_X, 12, 1.6], [33, 22, 1.1], [67, 22, 1.1]].forEach(([x, y, s], i) => {
+                const el = place(L, svg(SPIRAL_SVG, u * s, u * s), x, y);
+                el.classList.add('am-ink');
+                const dir = i === 2 ? -1 : 1;
+                run(el, [pf(0, 0, 0, 0, 0), pf(0, 0, 1, dir * 180, 1, 0.2), pf(0, 0, 1, dir * 720, 1, 0.8), pf(0, 0, 0.8, dir * 900, 0)],
+                    d, i * 80, 'linear');
             });
+            veil(L, 'rgba(60, 50, 90, 0.25)', HOLD, d);
+        } },
+    hit: { label: '타격', hint: 'getting hit, a punch or slap landing, a sharp impact', dur: 900,
+        play(L, u, d) {
+            run(place(L, svg(BURST_SVG, u * 2.4, u * 2.4), 68, 40),
+                [pf(0, 0, 0.2, 0, 0), pf(0, 0, 1.3, 10, 1, 0.12), pf(0, 0, 1, 0, 1, 0.3), pf(0, 0, 1, 0, 1, 0.7), pf(0, 0, 1.15, 0, 0)], d);
+            veil(L, 'rgba(255, 255, 255, 0.7)', [{ opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 0, offset: 0.3 }, { opacity: 0 }], d);
+        } },
+    bandage: { label: '반창고', hint: 'hurt, bruised, beaten up, after getting hit', dur: 2200,
+        play(L, u, d) {
+            run(place(L, svg(BANDAGE_SVG, u * 1.5, u * 1.5), 36, 58),
+                [pf(0, 0, 1.8, -10, 0), pf(0, 0, 0.9, -10, 1, 0.12), pf(0, 0, 1.05, -10, 1, 0.22), pf(0, 0, 1, -10, 1, 0.85), pf(0, 0, 1, -10, 0)], d);
+        } },
+    soul: { label: '영혼 가출', hint: 'soul leaving the body, utterly drained, dumbfounded, mortified to death', dur: 3000,
+        play(L, u, d) {
+            run(place(L, svg(GHOST_SVG, u * 2, u * 2.8), FACE_X, 55),
+                [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.6, 1, -6, 0.9, 0.2), pf(u * 0.4, -u * 1.8, 1, 8, 0.9, 0.5),
+                    pf(-u * 0.3, -u * 3, 1, -6, 0.8, 0.8), pf(u * 0.2, -u * 4, 1, 4, 0)], d, 0, 'ease-in-out');
+            veil(L, 'rgba(200, 210, 230, 0.3)', HOLD, d, { mixBlendMode: 'saturation' });
+        } },
+    focus: { label: '집중선', hint: 'intense focus, a dramatic moment, sudden tension', dur: 1600,
+        play(L, u, d) {
+            const mask = `radial-gradient(ellipse 40% 45% at ${FACE_X}% ${FACE_Y}%, transparent 55%, #000 100%)`;
+            const flicker = [{ opacity: 0 }, { opacity: 1, offset: 0.12 }, { opacity: 0.75, offset: 0.4 }, { opacity: 1, offset: 0.6 }, { opacity: 0.85, offset: 0.85 }, { opacity: 0 }];
+            veil(L, `repeating-conic-gradient(from 0deg at ${FACE_X}% ${FACE_Y}%, rgba(15, 15, 15, 0.65) 0deg 0.8deg, transparent 0.8deg 5deg)`, flicker, d,
+                { maskImage: mask, webkitMaskImage: mask });
+            veil(L, `repeating-conic-gradient(from 2deg at ${FACE_X}% ${FACE_Y}%, rgba(15, 15, 15, 0.5) 0deg 0.5deg, transparent 0.5deg 7.3deg)`, flicker, d,
+                { maskImage: mask, webkitMaskImage: mask });
+        } },
+    dreamy: { label: '아련', hint: 'nostalgic, wistful, a tender memory, a soft dreamlike moment', dur: 3600,
+        play(L, u, d) {
+            veil(L, 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, 0.6) 100%)', HOLD, d);
+            [[12, 20, 1.6, 0], [30, 70, 1.1, 1], [80, 18, 1.9, 1], [88, 66, 1.2, 0], [56, 86, 1.4, 1], [20, 46, 0.7, 0],
+                [70, 50, 0.6, 0], [44, 14, 0.9, 1], [92, 40, 0.8, 0], [8, 82, 1.3, 1]].forEach(([x, y, s, ring], i) => {
+                const b = document.createElement('span');
+                b.className = ring ? 'am-p am-bokeh am-ring' : 'am-p am-bokeh';
+                b.style.width = b.style.height = `${u * s}px`;
+                run(place(L, b, x, y), [pf(0, u * 0.2, 0.7, 0, 0), pf(0, 0, 1, 0, 1, 0.3), pf(0, -u * 0.3, 1, 0, 1, 0.75), pf(0, -u * 0.5, 1.1, 0, 0)],
+                    d * 0.8, (i % 4) * d * 0.06, 'ease-in-out');
+            });
+        } },
+    halo: { label: '후광', hint: 'radiant, holy, admirable, shining with charm or glory', dur: 3200,
+        play(L, u, d) {
+            veil(L, `radial-gradient(ellipse 45% 60% at ${FACE_X}% ${FACE_Y}%, rgba(255, 236, 170, 0) 35%, rgba(255, 226, 140, 0.55) 60%, rgba(255, 226, 140, 0) 85%)`, HOLD, d,
+                { mixBlendMode: 'screen' });
+            const box = veil(L, 'none', HOLD, d, { overflow: 'hidden', mixBlendMode: 'screen' });
+            const rays = document.createElement('span');
+            rays.className = 'am-rays';
+            rays.style.left = `${FACE_X}%`;
+            rays.style.top = `${FACE_Y}%`;
+            box.append(rays);
+            rays.animate([{ transform: 'translate(-50%, -50%) rotate(0deg)' }, { transform: 'translate(-50%, -50%) rotate(40deg)' }],
+                { duration: d, easing: 'linear', fill: 'both' });
         } },
     gloom: { label: '안색 어두움', hint: 'feeling sick, dread, despair, depressed, mortified', dur: 3200,
         play(L, u, d) {
@@ -231,10 +346,6 @@ const EFFECTS = {
             const mask = 'linear-gradient(to bottom, #000, transparent 45%)';
             veil(L, 'repeating-linear-gradient(90deg, rgba(30, 0, 60, 0.5) 0 2px, transparent 2px 9px)', HOLD, d,
                 { maskImage: mask, webkitMaskImage: mask });
-        } },
-    blush: { label: '홍조', hint: 'blushing, flustered, shy, embarrassed, smitten', dur: 2600,
-        play(L, u, d) {
-            veil(L, 'radial-gradient(ellipse 70% 40% at 50% 55%, rgba(255, 105, 150, 0.5), transparent 70%)', HOLD, d);
         } },
     flash: { label: '번쩍', hint: 'sudden realization, a blinding flash, a striking impact', dur: 700,
         play(L, u, d) {
@@ -259,6 +370,14 @@ function glyph(text, color, size) {
     el.style.fontSize = `${size}px`;
     return el;
 }
+function svg(markup, width, height) {
+    const el = document.createElement('span');
+    el.className = 'am-p';
+    el.innerHTML = markup;
+    el.style.width = `${width}px`;
+    el.style.height = `${height}px`;
+    return el;
+}
 function place(layer, el, x, y) {
     el.style.left = `${x}%`;
     el.style.top = `${y}%`;
@@ -279,6 +398,7 @@ function veil(layer, background, frames, duration, style = {}) {
     Object.assign(el.style, style);
     layer.append(el);
     el.animate(frames, { duration, easing: 'ease-in-out', fill: 'both' });
+    return el;
 }
 
 // --- state ---
@@ -297,13 +417,23 @@ function getSettings() {
     }
     for (const key of Object.keys(defaultSettings)) {
         if (!Object.hasOwn(extensionSettings[MODULE_NAME], key)) {
-            extensionSettings[MODULE_NAME][key] = defaultSettings[key];
+            extensionSettings[MODULE_NAME][key] = structuredClone(defaultSettings[key]);
         }
     }
-    if (extensionSettings[MODULE_NAME].rules === LEGACY_DEFAULT_RULES) {
+    if (LEGACY_DEFAULT_RULES.includes(extensionSettings[MODULE_NAME].rules)) {
         extensionSettings[MODULE_NAME].rules = DEFAULT_RULES;
     }
     return extensionSettings[MODULE_NAME];
+}
+
+function motionOn(name) {
+    const settings = getSettings();
+    return !!MOTIONS[name] && settings.motionsEnabled && !settings.disabledMotions.includes(name);
+}
+
+function effectOn(name) {
+    const settings = getSettings();
+    return !!EFFECTS[name] && settings.effectsEnabled && !settings.disabledEffects.includes(name);
 }
 
 // --- motion resolution ---
@@ -360,15 +490,16 @@ function fileNameOf(img, rawName) {
 // Returns { motion, effect } (either may be null) or null when nothing applies
 function resolveAsset(img, item) {
     const settings = getSettings();
+    let found = null;
     if (settings.mode === 'tag') {
-        const motion = MOTIONS[item?.motion] ? item.motion : null;
-        const effect = EFFECTS[item?.effect] ? item.effect : null;
-        return motion || effect ? { motion, effect } : null;
+        found = item;
+    } else {
+        const name = fileNameOf(img, item?.name).toLowerCase();
+        if (name) found = parseRules(settings.rules).find(r => r.regex.test(name));
     }
-    const name = fileNameOf(img, item?.name).toLowerCase();
-    if (!name) return null;
-    const rule = parseRules(settings.rules).find(r => r.regex.test(name));
-    return rule ? { motion: rule.motion, effect: rule.effect } : null;
+    const motion = motionOn(found?.motion) ? found.motion : null;
+    const effect = effectOn(found?.effect) ? found.effect : null;
+    return motion || effect ? { motion, effect } : null;
 }
 
 function isLooping(found) {
@@ -556,7 +687,7 @@ function playEffect(el, effect) {
     };
     activeLayers.set(el, cleanup);
 
-    const unit = Math.max(14, Math.min(48, Math.min(el.offsetWidth, el.offsetHeight) * 0.13));
+    const unit = Math.max(20, Math.min(80, Math.min(el.offsetWidth, el.offsetHeight) * 0.2));
     def.play(layer, unit, def.dur / (Number(getSettings().speed) || 1));
     Promise.allSettled(layer.getAnimations({ subtree: true }).map(a => a.finished)).then(cleanup);
     return layer;
@@ -629,16 +760,23 @@ function markFresh(mesId) {
 }
 
 function buildTagPrompt() {
-    const list = defs => Object.entries(defs).map(([name, def]) => `- ${name}: ${def.hint}`).join('\n');
+    const motions = Object.entries(MOTIONS).filter(([name]) => motionOn(name));
+    const effects = Object.entries(EFFECTS).filter(([name]) => effectOn(name));
+    if (!motions.length && !effects.length) return '';
+    const list = defs => defs.map(([name, def]) => `- ${name}: ${def.hint}`).join('\n');
+    const both = motions.length && effects.length;
+    const what = both ? 'at most one motion and at most one effect' : motions.length ? 'at most one motion' : 'at most one effect';
+    const markers = [motions.length ? '[motion:NAME]' : '', effects.length ? '[fx:NAME]' : ''].filter(Boolean).join(' ');
+    const sections = [
+        motions.length ? `Motions (how the picture moves):\n${list(motions)}` : '',
+        effects.length ? `Effects (what appears over the picture):\n${list(effects)}` : '',
+    ].filter(Boolean).join('\n');
     return `[Asset Motion]
-You may decorate an internal image tag ({{img::filename.ext}}) with at most one motion and at most one effect. Write the markers on their own line directly above the image tag, never on the same line as the tag:
-[motion:NAME] [fx:NAME]
+You may decorate an internal image tag ({{img::filename.ext}}) with ${what}. Write the marker${both ? 's' : ''} on their own line directly above the image tag, never on the same line as the tag:
+${markers}
 {{img::filename.ext}}
-Markers are optional and most images need none. Add one only when the paragraph right before the image shows a clear emotion, action, or event that it expresses well; otherwise write the image tag alone. A motion and an effect can be combined, or either can be used alone. Do not fall into using the same choice every time.
-Motions (how the picture moves):
-${list(MOTIONS)}
-Effects (what appears over the picture):
-${list(EFFECTS)}
+Markers are optional and most images need none. Add one only when the paragraph right before the image shows a clear emotion, action, or event that it expresses well; otherwise write the image tag alone.${both ? ' A motion and an effect can be combined, or either can be used alone.' : ''} Do not fall into using the same choice every time.
+${sections}
 Use only names from these lists. Never write a marker without an image tag right below it.`;
 }
 
@@ -653,8 +791,11 @@ function updatePromptInjection() {
 // --- settings UI ---
 
 function createSettingsUI() {
-    const chips = (defs, kind) => Object.entries(defs)
-        .map(([name, def]) => `<span class="am-chip" data-${kind}="${name}" title="${name}">${def.label}<small>${name}</small></span>`)
+    const settings = getSettings();
+    const chips = (defs, kind, disabled) => Object.entries(defs)
+        .map(([name, def]) => `<span class="am-chip" data-${kind}="${name}" title="${name}">`
+            + `<input type="checkbox" class="am-chip-on" ${disabled.includes(name) ? '' : 'checked'} />`
+            + `<span class="am-chip-text">${def.label}<small>${name}</small></span></span>`)
         .join('');
     const html = `
     <div id="${MODULE_NAME}_settings" class="extension_settings">
@@ -675,6 +816,14 @@ function createSettingsUI() {
                         <option value="tag">AI 태그 (AI가 상황 보고 고름)</option>
                         <option value="filename">파일명 규칙 (직접 지정)</option>
                     </select>
+                </label>
+                <label class="checkbox_label">
+                    <input id="am_motionsEnabled" type="checkbox" />
+                    <span>모션 사용</span>
+                </label>
+                <label class="checkbox_label">
+                    <input id="am_effectsEnabled" type="checkbox" />
+                    <span>효과 사용</span>
                 </label>
                 <label class="checkbox_label">
                     <input id="am_onlyNew" type="checkbox" />
@@ -707,12 +856,12 @@ function createSettingsUI() {
                 </div>
 
                 <div class="am-section">
-                    <small>미리보기 (눌러보세요) · 채팅에서는 에셋 사진을 누르면 다시 재생돼요</small>
-                    <div class="am-preview"><div id="am_preview_target" class="am-preview-target"><i class="fa-solid fa-image"></i></div></div>
+                    <small>미리보기 (눌러보세요) · 체크를 끄면 그 항목은 안 나와요 · 채팅에서는 에셋 사진을 누르면 다시 재생돼요</small>
+                    <div class="am-preview"><div id="am_preview_target" class="am-preview-target"><i class="fa-solid fa-user"></i></div></div>
                     <small>모션</small>
-                    <div class="am-chips">${chips(MOTIONS, 'motion')}</div>
+                    <div class="am-chips">${chips(MOTIONS, 'motion', settings.disabledMotions)}</div>
                     <small>효과</small>
-                    <div class="am-chips">${chips(EFFECTS, 'effect')}</div>
+                    <div class="am-chips">${chips(EFFECTS, 'effect', settings.disabledEffects)}</div>
                 </div>
               </div>
             </div>
@@ -720,7 +869,6 @@ function createSettingsUI() {
     </div>`;
     document.getElementById('extensions_settings2').insertAdjacentHTML('beforeend', html);
 
-    const settings = getSettings();
     const { saveSettingsDebounced } = SillyTavern.getContext();
     const $ = id => document.getElementById(id);
 
@@ -733,7 +881,7 @@ function createSettingsUI() {
         updatePromptInjection();
     };
 
-    for (const key of ['enabled', 'onlyNew', 'loopAmbient']) {
+    for (const key of ['enabled', 'motionsEnabled', 'effectsEnabled', 'onlyNew', 'loopAmbient']) {
         const box = $(`am_${key}`);
         box.checked = !!settings[key];
         box.addEventListener('change', () => {
@@ -779,10 +927,19 @@ function createSettingsUI() {
     });
 
     document.querySelectorAll(`#${MODULE_NAME}_settings .am-chip`).forEach(chip => {
+        const name = chip.dataset.motion ?? chip.dataset.effect;
+        const list = chip.dataset.motion ? 'disabledMotions' : 'disabledEffects';
+        const box = chip.querySelector('.am-chip-on');
+        box.addEventListener('click', event => event.stopPropagation());
+        box.addEventListener('change', () => {
+            settings[list] = settings[list].filter(n => n !== name);
+            if (!box.checked) settings[list].push(name);
+            save();
+        });
         chip.addEventListener('click', () => {
             const target = $('am_preview_target');
-            if (chip.dataset.motion) playMotion(target, chip.dataset.motion, false, null);
-            else playEffect(target, chip.dataset.effect);
+            if (chip.dataset.motion) playMotion(target, name, false, null);
+            else playEffect(target, name);
         });
     });
 
