@@ -166,11 +166,11 @@ function tornadoPath(turns) {
     }
     return d;
 }
-// Staggered rows of tiny arcs, like a cartoon cold sweat
-function scalePath() {
+// Rows of small arches (2-3-2), the classic cartoon cold-sweat mark
+function sweatMarksPath() {
     let d = '';
-    [8, 16, 24, 32].forEach((y, row) => {
-        (row % 2 ? [11, 21, 31] : [6, 16, 26]).forEach(x => { d += `M${x} ${y} q3 4 6 0 `; });
+    [[8, [10, 30]], [22, [0, 20, 40]], [36, [10, 30]]].forEach(([y, xs]) => {
+        xs.forEach(x => { d += `M${x + 2} ${y + 6} q5 -10 10 0 `; });
     });
     return d.trim();
 }
@@ -187,15 +187,24 @@ function burstPoints(n, outer, inner, c) {
 const ANGER_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g fill="none" stroke="#ff3b3b" stroke-width="5" stroke-linecap="round">
 <path d="M6 15 Q15 15 15 6"/><path d="M25 6 Q25 15 34 15"/><path d="M6 25 Q15 25 15 34"/><path d="M34 25 Q25 25 25 34"/></g></svg>`;
 const TORNADO_SVG = `<svg viewBox="0 0 70 75" width="100%" height="100%"><path d="${tornadoPath(5)}" fill="none" stroke="#1e1e1e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const SPIKE_SVG = `<svg viewBox="0 0 50 28" width="100%" height="100%"><path d="M2 24 C6 22 9 16 11 6 C12 14 15 18 19 18 C22 12 24 6 27 2 C28 10 31 15 36 16 C39 12 42 9 46 8 C44 14 44 19 47 24" fill="none" stroke="#1e1e1e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const SCALE_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><path d="${scalePath()}" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linecap="round"/></svg>`;
+const SPIKE_SVG = `<svg viewBox="0 0 50 28" width="100%" height="100%"><path d="M4 25 L12 8 L18 19 L25 3 L32 19 L38 8 L46 25" fill="none" stroke="#1e1e1e" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SWEAT_MARKS_SVG = `<svg viewBox="-2 -2 56 50" width="100%" height="100%"><path d="${sweatMarksPath()}" fill="none" stroke="#1e1e1e" stroke-width="3.6" stroke-linecap="round"/></svg>`;
+const SKULL_SVG = `<svg viewBox="0 0 100 90" width="100%" height="100%">
+<path d="M20 70 C5 70 4 51 18 46 C12 30 30 19 40 28 C45 11 68 11 72 28 C86 21 99 38 88 50 C100 58 93 77 78 72 C72 85 52 85 46 76 C38 85 21 83 20 70 Z" fill="#fff" stroke="#36b336" stroke-width="5" stroke-linejoin="round"/>
+<g stroke="#111" stroke-width="7" stroke-linecap="round"><path d="M25 66 L75 30"/><path d="M25 30 L75 66"/></g>
+<g fill="#111"><circle cx="22" cy="69" r="5"/><circle cx="28" cy="62" r="5"/><circle cx="78" cy="27" r="5"/><circle cx="72" cy="34" r="5"/>
+<circle cx="22" cy="27" r="5"/><circle cx="28" cy="34" r="5"/><circle cx="78" cy="69" r="5"/><circle cx="72" cy="62" r="5"/>
+<circle cx="50" cy="42" r="17"/><rect x="40" y="50" width="20" height="13" rx="3"/></g>
+<g fill="#fff"><circle cx="43.5" cy="41" r="5.5"/><circle cx="56.5" cy="41" r="5.5"/><path d="M50 47 L47 53 L53 53 Z"/></g>
+<g stroke="#fff" stroke-width="1.6"><path d="M45 56 V63"/><path d="M50 56 V63"/><path d="M55 56 V63"/></g>
+<g fill="#e22"><path d="M16 22 L36 30 L30 22 Z"/><path d="M84 22 L64 30 L70 22 Z"/></g></svg>`;
 const BURST_SVG = `<svg viewBox="0 0 60 60" width="100%" height="100%"><polygon points="${burstPoints(11, 29, 13, 30)}" fill="#fff" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"/></svg>`;
 const BULB_SVG = `<svg viewBox="0 0 48 48" width="100%" height="100%"><g stroke="#e0a800" stroke-width="2.5" stroke-linecap="round">
 <path d="M24 2 L24 6"/><path d="M8 8 L11 11"/><path d="M40 8 L37 11"/><path d="M2 21 L6 21"/><path d="M46 21 L42 21"/></g>
 <circle cx="24" cy="21" r="11" fill="#ffe66d" stroke="#8a6d00" stroke-width="2"/>
 <path d="M20 22 Q22 17 24 22 Q26 17 28 22" fill="none" stroke="#c48a00" stroke-width="1.5"/>
 <rect x="18.5" y="31" width="11" height="9" rx="2" fill="#cfcfcf" stroke="#666" stroke-width="1.5"/><path d="M19 34.5 H29 M19 37.5 H29" stroke="#888" stroke-width="1"/></svg>`;
-const BANDAGE_BAND = '<rect x="3" y="15" width="34" height="10" rx="1.5" fill="#fbfbfb" stroke="#b4b4b4" stroke-width="1.2"/><rect x="15" y="15" width="10" height="10" fill="#ececec" stroke="#c4c4c4" stroke-width="0.8"/>';
+const BANDAGE_BAND = '<rect x="3" y="15" width="34" height="10" rx="1.5" fill="#fbfbfb" stroke="#b4b4b4" stroke-width="1.2"/>';
 const BANDAGE_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g transform="rotate(45 20 20)">${BANDAGE_BAND}</g><g transform="rotate(-45 20 20)">${BANDAGE_BAND}</g></svg>`;
 const GHOST_SVG = `<svg viewBox="0 0 40 56" width="100%" height="100%"><path d="M20 3 C31 3 36 12 35 21 C34 32 28 39 24 46 C22 50 24 53 28 55 C19 55 14 50 15 44 C16 38 6 32 5 21 C4 11 9 3 20 3 Z" fill="rgba(255,255,255,0.88)" stroke="#9aa6b8" stroke-width="1.5"/>
 <ellipse cx="15" cy="18" rx="2" ry="3" fill="#444"/><ellipse cx="25" cy="18" rx="2" ry="3" fill="#444"/><ellipse cx="20" cy="26" rx="2.5" ry="3" fill="#666"/></svg>`;
@@ -209,7 +218,7 @@ const EFFECTS = {
         play(L, u, d) {
             AROUND_FACE.slice(0, 6).forEach(([x, y], i) => {
                 const dx = (i % 2 ? 1 : -1) * u * 0.4;
-                run(place(L, glyph(i % 3 === 1 ? '♫' : '♪', '#5ab4ff', u * (i % 2 ? 0.9 : 1.1)), x, y),
+                run(place(L, glyph(i % 3 === 1 ? '♫' : '♪', '#5ab4ff', u * (i % 2 ? 1.4 : 1.7), true), x, y),
                     [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.2, 1, -12, 1, 0.15), pf(dx, -u * 0.7, 1, 12, 1, 0.55), pf(-dx * 0.5, -u * 1.3, 0.9, -8, 0)],
                     d * 0.65, i * d * 0.07);
             });
@@ -217,7 +226,7 @@ const EFFECTS = {
     sparkle: { label: '반짝', hint: 'delighted, proud, dazzling, beautiful, a magical moment', dur: 1800,
         play(L, u, d) {
             AROUND_FACE.forEach(([x, y], i) => {
-                const el = place(L, glyph('✦', '#fff6b0', u * [1.1, 0.8, 0.9, 1.2, 0.7, 1, 0.85, 0.75][i]), x, y);
+                const el = place(L, glyph('✦', '#fff6b0', u * [1.8, 1.3, 1.5, 1.9, 1.2, 1.6, 1.4, 1.2][i]), x, y);
                 el.classList.add('am-glow');
                 run(el, [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 45, 1, 0.4), pf(0, 0, 0, 90, 0)], d * 0.5, ((i * 3) % 8) * d * 0.06);
             });
@@ -226,39 +235,38 @@ const EFFECTS = {
         play(L, u, d) {
             AROUND_FACE.slice(0, 6).forEach(([x, y], i) => {
                 const sway = (i % 2 ? 1 : -1) * u * 0.3;
-                run(place(L, glyph('♥︎', '#ff6b9e', u * (i % 3 ? 0.9 : 1.2)), x, y),
+                run(place(L, glyph('♥︎', '#ff6b9e', u * (i % 3 ? 1.3 : 1.6)), x, y),
                     [pf(0, 0, 0.2, 0, 0), pf(0, -u * 0.2, 1.1, 0, 1, 0.2), pf(sway, -u * 0.7, 1, -8, 1, 0.6), pf(-sway * 0.5, -u * 1.3, 0.9, 8, 0)],
                     d * 0.65, i * d * 0.07);
             });
         } },
     question: { label: '물음표', hint: 'confused, puzzled, wondering, not understanding', dur: 1800,
         play(L, u, d) {
-            run(place(L, glyph('?', '#ffd54a', u * 1.4), 68, 16),
+            run(place(L, glyph('?', '#ffd54a', u * 1.9, true), 70, 18),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.25, 0, 1, 0.15), pf(0, 0, 1, -14, 1, 0.3), pf(0, 0, 1, 12, 1, 0.45),
                     pf(0, 0, 1, -6, 1, 0.6), pf(0, 0, 1, 0, 1, 0.85), pf(0, -u * 0.3, 1, 0, 0)], d);
-            run(place(L, glyph('?', '#ffd54a', u * 0.9), 59, 24),
+            run(place(L, glyph('?', '#ffd54a', u * 1.2, true), 58, 24),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 0, 1, 0.2), pf(0, 0, 1, 10, 1, 0.4), pf(0, 0, 1, 0, 1, 0.8), pf(0, -u * 0.3, 1, 0, 0)],
                 d * 0.85, d * 0.15);
         } },
     exclaim: { label: '느낌표', hint: 'surprised, alarmed, suddenly noticing something', dur: 1400,
         play(L, u, d) {
             const j = u * 0.08;
-            run(place(L, glyph('!', '#ff4d4d', u * 1.5), 68, 14),
+            run(place(L, glyph('!', '#ff4d4d', u * 2.0, true), 70, 18),
                 [pf(0, u * 0.3, 0, 0, 0), pf(0, 0, 1.4, 0, 1, 0.12), pf(0, 0, 1, 0, 1, 0.25), pf(-j * 2, 0, 1, -6, 1, 0.32),
                     pf(j * 2, 0, 1, 6, 1, 0.39), pf(-j, 0, 1, -3, 1, 0.46), pf(0, 0, 1, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d);
         } },
     startle: { label: '깜짝(^^^)', hint: 'jolted with surprise, shocked, caught off guard', dur: 1300,
         play(L, u, d) {
-            [[32, 14, -30], [68, 14, 30]].forEach(([x, y, r]) => {
-                const el = place(L, svg(SPIKE_SVG, u * 1.1, u * 0.62), x, y);
-                el.classList.add('am-ink');
-                run(el, [pf(0, u * 0.3, 0.3, r, 0), pf(0, 0, 1.2, r, 1, 0.12), pf(0, 0, 1, r, 1, 0.25), pf(0, -u * 0.08, 1.05, r, 1, 0.4),
-                    pf(0, 0, 1, r, 1, 0.8), pf(0, -u * 0.2, 1, r, 0)], d);
-            });
+            const r = 25;
+            const el = place(L, svg(SPIKE_SVG, u * 1.5, u * 0.84), 70, 14);
+            el.classList.add('am-ink');
+            run(el, [pf(0, u * 0.3, 0.3, r, 0), pf(0, 0, 1.2, r, 1, 0.12), pf(0, 0, 1, r, 1, 0.25), pf(0, -u * 0.08, 1.05, r, 1, 0.4),
+                pf(0, 0, 1, r, 1, 0.8), pf(0, -u * 0.2, 1, r, 0)], d);
         } },
     cold_sweat: { label: '식은땀', hint: 'breaking into a cold sweat, flustered, awkward panic, nervously cornered', dur: 1800,
         play(L, u, d) {
-            const el = place(L, svg(SCALE_SVG, u * 1.1, u * 1.1), 78, 24);
+            const el = place(L, svg(SWEAT_MARKS_SVG, u * 1.4, u * 1.25), 30, 10);
             el.classList.add('am-ink');
             const j = u * 0.03;
             run(el, [pf(0, 0, 0.8, 0, 0), pf(0, 0, 1, 0, 1, 0.15), pf(-j, 0, 1, 0, 1, 0.3), pf(j, 0, 1, 0, 1, 0.4), pf(-j, 0, 1, 0, 1, 0.5),
@@ -266,14 +274,12 @@ const EFFECTS = {
         } },
     sweat: { label: '땀', hint: 'nervous, awkward, embarrassed, an uh-oh moment', dur: 1600,
         play(L, u, d) {
-            [[66, 20, 0.7, 0], [61, 30, 0.45, 0.25]].forEach(([x, y, s, delay]) => {
-                const drop = document.createElement('span');
-                drop.className = 'am-p am-drop';
-                drop.style.width = drop.style.height = `${u * s}px`;
-                run(place(L, drop, x, y),
-                    [pf(0, -u * 0.2, 0, -45, 0), pf(0, 0, 1, -45, 1, 0.2), pf(0, 0, 1, -45, 1, 0.5), pf(0, u * 0.9, 0.9, -45, 0)],
-                    d * (1 - delay), d * delay, 'ease-in');
-            });
+            const drop = document.createElement('span');
+            drop.className = 'am-p am-drop';
+            drop.style.width = drop.style.height = `${u * 0.6}px`;
+            run(place(L, drop, 68, 20),
+                [pf(0, -u * 0.2, 0, -45, 0), pf(0, 0, 1, -45, 1, 0.2), pf(0, 0, 1, -45, 1, 0.5), pf(0, u * 0.9, 0.9, -45, 0)],
+                d, 0, 'ease-in');
         } },
     anger: { label: '빠직', hint: 'annoyed, irritated, angry, a vein popping', dur: 1500,
         play(L, u, d) {
@@ -283,8 +289,8 @@ const EFFECTS = {
         } },
     zzz: { label: '졸림', hint: 'sleepy, tired, bored, dozing off', dur: 2400,
         play(L, u, d) {
-            [['Z', 1.1], ['z', 0.85], ['z', 0.7]].forEach(([g, s], i) => {
-                run(place(L, glyph(g, '#c9d3ff', u * s), 62, 24),
+            [['Z', 1.8], ['z', 1.4], ['z', 1.1]].forEach(([g, s], i) => {
+                run(place(L, glyph(g, '#c9d3ff', u * s, true), 62, 24),
                     [pf(0, 0, 0.4, 0, 0), pf(u * 0.3, -u * 0.4, 1, -10, 1, 0.25), pf(u * 1.1, -u * 1.3, 1, -15, 1, 0.7), pf(u * 1.5, -u * 1.9, 0.9, -20, 0)],
                     d * 0.6, i * d * 0.2);
             });
@@ -298,7 +304,8 @@ const EFFECTS = {
         } },
     dizzy: { label: '멘탈붕괴', hint: 'mentally shattered, overwhelmed, dizzy, head spinning in confusion', dur: 2400,
         play(L, u, d) {
-            const el = place(L, svg(TORNADO_SVG, u * 1.4, u * 1.5), FACE_X, 12);
+            // Off to the side of the head, the way comics draw it
+            const el = place(L, svg(TORNADO_SVG, u * 1.0, u * 1.07), 74, 16);
             el.classList.add('am-ink');
             run(el, [pf(0, 0, 0.3, 0, 0), pf(0, 0, 1.05, -6, 1, 0.15), pf(0, 0, 0.95, 6, 1, 0.3), pf(0, 0, 1.05, -6, 1, 0.45),
                 pf(0, 0, 0.95, 6, 1, 0.6), pf(0, 0, 1.03, -4, 1, 0.75), pf(0, -u * 0.2, 1, 0, 0)], d, 0, 'ease-in-out');
@@ -307,13 +314,23 @@ const EFFECTS = {
     hit: { label: '타격', hint: 'getting hit, a punch or slap landing, a sharp impact', dur: 900,
         play(L, u, d) {
             // Two quick hits: lower left, then upper right
-            [[30, 66, 0], [70, 30, 0.2]].forEach(([x, y, delay]) => {
-                run(place(L, svg(BURST_SVG, u * 1.5, u * 1.5), x, y),
+            [[30, 66, 0, 1.7], [70, 30, 0.2, 1.1]].forEach(([x, y, delay, s]) => {
+                run(place(L, svg(BURST_SVG, u * s, u * s), x, y),
                     [pf(0, 0, 0.2, 0, 0), pf(0, 0, 1.3, 10, 1, 0.15), pf(0, 0, 1, 0, 1, 0.35), pf(0, 0, 1, 0, 1, 0.65), pf(0, 0, 1.15, 0, 0)],
                     d * 0.75, d * delay);
             });
             veil(L, 'rgba(255, 255, 255, 0.6)', [{ opacity: 0 }, { opacity: 1, offset: 0.06 }, { opacity: 0, offset: 0.18 }, { opacity: 1, offset: 0.26 },
                 { opacity: 0, offset: 0.4 }, { opacity: 0 }], d);
+        } },
+    skull: { label: '무도 해골', hint: 'a fatal blunder, a total disaster, critical damage, a crushing burn', dur: 2200,
+        play(L, u, d) {
+            // Two stamps fly in one after another and slam onto the picture
+            [[30, 64, 0, 1.9, -12, -1], [70, 30, 0.18, 1.5, 10, 1]].forEach(([x, y, delay, s, r, side]) => {
+                run(place(L, svg(SKULL_SVG, u * s, u * s * 0.9), x, y),
+                    [pf(side * u * 3, -u * 2, 2.4, r - side * 40, 0), pf(0, 0, 0.9, r, 1, 0.12), pf(0, 0, 1.08, r, 1, 0.18),
+                        pf(0, 0, 1, r, 1, 0.24), pf(0, 0, 1, r, 1, 0.85), pf(0, 0, 1, r, 0)],
+                    d * (1 - delay), d * delay, 'ease-out');
+            });
         } },
     bandage: { label: '반창고', hint: 'hurt, bruised, beaten up, after getting hit', dur: 2200,
         play(L, u, d) {
@@ -352,24 +369,26 @@ const EFFECTS = {
         } },
     halo: { label: '후광', hint: 'radiant, holy, admirable, shining with charm or glory', dur: 3200,
         play(L, u, d) {
-            // The whole picture glows from its edges (gradients, since some themes disable box-shadow)
-            const pulse = [{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 0.7, offset: 0.45 }, { opacity: 1, offset: 0.65 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }];
-            const g = Math.round(u * 0.5);
-            const inner = 'rgba(255, 245, 200, 0.8)';
-            veil(L, [`linear-gradient(to right, ${inner}, transparent ${g}px)`, `linear-gradient(to left, ${inner}, transparent ${g}px)`,
-                `linear-gradient(to bottom, ${inner}, transparent ${g}px)`, `linear-gradient(to top, ${inner}, transparent ${g}px)`].join(', '), pulse, d);
-            // A bright edge whose drop-shadow spills light outside the picture
-            veil(L, 'none', pulse, d, {
-                border: '3px solid rgba(255, 248, 215, 0.95)', boxSizing: 'border-box',
-                filter: `drop-shadow(0 0 ${Math.round(g * 0.3)}px #fff0b0) drop-shadow(0 0 ${Math.round(g * 0.6)}px #ffe08a) drop-shadow(0 0 ${g}px #ffd060)`,
-            });
+            // Light shining from behind the picture: a glow drop-shadow on the picture itself
+            const pic = L.previousElementSibling;
+            const base = getComputedStyle(pic).filter;
+            const keep = base === 'none' ? '' : `${base} `;
+            const glow = (a, b, o) => `${keep}drop-shadow(0 0 ${a}px rgba(255, 236, 160, ${o})) drop-shadow(0 0 ${b}px rgba(255, 210, 90, ${o}))`;
+            const g = Math.round(u * 0.35);
+            pic.animate([{ filter: glow(0, 0, 0) }, { filter: glow(g, g * 3, 1), offset: 0.2 }, { filter: glow(g * 0.7, g * 2.2, 0.8), offset: 0.45 },
+                { filter: glow(g, g * 3, 1), offset: 0.7 }, { filter: glow(0, 0, 0) }], { duration: d, easing: 'ease-in-out' });
+            // Keeps the layer alive for the same time
+            veil(L, 'none', [{ opacity: 0 }, { opacity: 0 }], d);
         } },
     gloom: { label: '안색 어두움', hint: 'feeling sick, dread, despair, depressed, mortified', dur: 3200,
         play(L, u, d) {
-            veil(L, 'linear-gradient(to bottom, rgba(72, 28, 120, 0.85), rgba(96, 52, 160, 0.45) 35%, rgba(96, 52, 160, 0) 70%)', HOLD, d);
-            const mask = 'linear-gradient(to bottom, #000, transparent 45%)';
+            // Over the upper part of the face only, fading out at the sides
+            const sides = 'linear-gradient(to right, transparent 12%, #000 28%, #000 72%, transparent 88%)';
+            veil(L, 'linear-gradient(to bottom, rgba(72, 28, 120, 0.85), rgba(96, 52, 160, 0.45) 22%, rgba(96, 52, 160, 0) 45%)', HOLD, d,
+                { maskImage: sides, webkitMaskImage: sides });
+            const mask = `linear-gradient(to bottom, #000, transparent 32%), ${sides}`;
             veil(L, 'repeating-linear-gradient(90deg, rgba(30, 0, 60, 0.5) 0 2px, transparent 2px 9px)', HOLD, d,
-                { maskImage: mask, webkitMaskImage: mask });
+                { maskImage: mask, webkitMaskImage: mask, maskComposite: 'intersect', webkitMaskComposite: 'source-in' });
         } },
     flash: { label: '번쩍', hint: 'sudden realization, a blinding flash, a striking impact', dur: 700,
         play(L, u, d) {
@@ -386,9 +405,9 @@ const EFFECTS = {
         } },
 };
 
-function glyph(text, color, size) {
+function glyph(text, color, size, bold = false) {
     const el = document.createElement('span');
-    el.className = 'am-p';
+    el.className = bold ? 'am-p am-bold' : 'am-p';
     el.textContent = text;
     el.style.color = color;
     el.style.fontSize = `${size}px`;
