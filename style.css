@@ -119,6 +119,13 @@
     filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.6));
 }
 
+/* Thick symbols: heavy font plus a same-colored stroke */
+.am-fx-layer .am-bold {
+    font-family: "Arial Black", "Segoe UI Black", "Noto Sans KR", sans-serif;
+    -webkit-text-stroke: 0.06em currentColor;
+    paint-order: stroke fill;
+}
+
 .am-fx-layer .am-glow {
     filter: drop-shadow(0 0 4px #ffe680) drop-shadow(0 0 1px rgba(0, 0, 0, 0.5));
 }
