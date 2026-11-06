@@ -14,13 +14,13 @@ const INLINE_MARKER_REGEX = /(\[(?:motion|fx)\s*:\s*[a-z_-]+\s*\])[ \t]*(?=\{\{i
 
 const DEFAULT_RULES = `# 파일명 패턴 = 모션 효과   (* 는 아무 글자, 위에서부터 먼저 맞는 줄 적용, 모션·효과 중 하나만 써도 됨)
 *angry* = rattle anger
-*happy* = bounce
+*happy* = hop
 *smile* = sparkle
 *sad* = gloom
 *cry* = tremble
 *surprise* = jump startle
 *shy* = jelly
-*love* = heartbeat hearts
+*love* = hearts
 *confus* = question`;
 
 // Default rules shipped in earlier versions; replaced automatically because they use removed names
@@ -42,6 +42,15 @@ const LEGACY_DEFAULT_RULES = [`# 파일명 패턴 = 모션   (* 는 아무 글�
 *surprise* = jump exclaim
 *shy* = jelly blush
 *love* = heartbeat hearts
+*confus* = question`, `# 파일명 패턴 = 모션 효과   (* 는 아무 글자, 위에서부터 먼저 맞는 줄 적용, 모션·효과 중 하나만 써도 됨)
+*angry* = rattle anger
+*happy* = bounce
+*smile* = sparkle
+*sad* = gloom
+*cry* = tremble
+*surprise* = jump startle
+*shy* = jelly
+*love* = heartbeat hearts
 *confus* = question`];
 
 const defaultSettings = Object.freeze({
@@ -62,16 +71,14 @@ const defaultSettings = Object.freeze({
 // k = intensity multiplier. tf = transform keyframes (added on top of existing transform).
 // fx = opacity/filter keyframes (replace). loop = ambient motion that may repeat forever.
 const MOTIONS = {
-    bounce: { label: '통통', hint: 'cheerful, excited, playful, happy', dur: 800,
-        tf: k => [ty(0), ty(-16 * k, 0.25), ty(0, 0.5), ty(-7 * k, 0.7), ty(0, 0.85), ty(-2 * k, 0.93), ty(0)] },
-    hop: { label: '깡총', hint: 'eager, energetic, happy little jumps', dur: 1100,
+    hop: { label: '깡총', hint: 'cheerful, excited, eager, happy little jumps', dur: 1100,
         tf: k => [
             { transform: 'translateY(0) scale(1, 1)' },
-            { transform: `translateY(0) scale(${1 + 0.08 * k}, ${1 - 0.08 * k})`, offset: 0.08 },
-            { transform: `translateY(${-24 * k}px) scale(${1 - 0.05 * k}, ${1 + 0.05 * k})`, offset: 0.24 },
-            { transform: `translateY(0) scale(${1 + 0.07 * k}, ${1 - 0.07 * k})`, offset: 0.4 },
-            { transform: `translateY(${-20 * k}px) scale(${1 - 0.04 * k}, ${1 + 0.04 * k})`, offset: 0.58 },
-            { transform: `translateY(0) scale(${1 + 0.06 * k}, ${1 - 0.06 * k})`, offset: 0.76 },
+            { transform: `translateY(0) scale(${1 + 0.04 * k}, ${1 - 0.04 * k})`, offset: 0.08 },
+            { transform: `translateY(${-24 * k}px) scale(${1 - 0.025 * k}, ${1 + 0.025 * k})`, offset: 0.24 },
+            { transform: `translateY(0) scale(${1 + 0.035 * k}, ${1 - 0.035 * k})`, offset: 0.4 },
+            { transform: `translateY(${-20 * k}px) scale(${1 - 0.02 * k}, ${1 + 0.02 * k})`, offset: 0.58 },
+            { transform: `translateY(0) scale(${1 + 0.03 * k}, ${1 - 0.03 * k})`, offset: 0.76 },
             { transform: 'translateY(0) scale(1, 1)' },
         ] },
     rattle: { label: '덜그럭', hint: 'rattling, clattering, frustrated, fidgeting, grumbling', dur: 550,
@@ -89,8 +96,6 @@ const MOTIONS = {
         tf: k => [[1, 1, 0], [1 + 0.15 * k, 1 - 0.15 * k, 0.3], [1 - 0.1 * k, 1 + 0.1 * k, 0.4],
             [1 + 0.08 * k, 1 - 0.08 * k, 0.5], [1 - 0.03 * k, 1 + 0.03 * k, 0.65], [1 + 0.02 * k, 1 - 0.02 * k, 0.75], [1, 1, 1]]
             .map(([x, y, o]) => ({ transform: `scale(${x}, ${y})`, offset: o })) },
-    heartbeat: { label: '두근두근', hint: 'love, strong attraction, nervous excitement', dur: 1100,
-        tf: k => [sc(1), sc(1 + 0.1 * k, 0.14), sc(1, 0.28), sc(1 + 0.1 * k, 0.42), sc(1, 0.7), sc(1)] },
     pop: { label: '뿅', hint: 'sudden appearance, an idea, a cute entrance', dur: 500,
         tf: k => [sc(0.3), sc(1 + 0.12 * k, 0.6), sc(0.95, 0.8), sc(1)],
         fx: [{ opacity: 0 }, { opacity: 1, offset: 0.4 }, { opacity: 1 }] },
@@ -145,18 +150,29 @@ function jitter(steps, amp, rotAmp) {
 // Assets are mostly landscape pictures with the face near the center (FACE_X, FACE_Y in %).
 
 const FACE_X = 50;
-const FACE_Y = 45;
+const FACE_Y = 40;
 
-function spiralPath(turns, size) {
-    const steps = turns * 24;
-    const c = size / 2;
+// Whirlwind: loops that shrink and drift down-right, drawn as one stroke
+function tornadoPath(turns) {
+    const steps = turns * 28;
     let d = '';
     for (let i = 0; i <= steps; i++) {
-        const t = (i / 24) * 2 * Math.PI;
-        const r = (i / steps) * (c - 2);
-        d += `${i ? 'L' : 'M'}${(c + r * Math.cos(t)).toFixed(1)} ${(c + r * Math.sin(t)).toFixed(1)}`;
+        const p = i / steps;
+        const t = p * turns * 2 * Math.PI;
+        const rx = 28 * (1 - p) + 4;
+        const x = 32 + p * 24 + rx * Math.cos(t);
+        const y = 10 + p * 56 + rx * 0.38 * Math.sin(t);
+        d += `${i ? 'L' : 'M'}${x.toFixed(1)} ${y.toFixed(1)}`;
     }
     return d;
+}
+// Staggered rows of tiny arcs, like a cartoon cold sweat
+function scalePath() {
+    let d = '';
+    [8, 16, 24, 32].forEach((y, row) => {
+        (row % 2 ? [11, 21, 31] : [6, 16, 26]).forEach(x => { d += `M${x} ${y} q3 4 6 0 `; });
+    });
+    return d.trim();
 }
 function burstPoints(n, outer, inner, c) {
     const pts = [];
@@ -170,18 +186,16 @@ function burstPoints(n, outer, inner, c) {
 
 const ANGER_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g fill="none" stroke="#ff3b3b" stroke-width="5" stroke-linecap="round">
 <path d="M6 15 Q15 15 15 6"/><path d="M25 6 Q25 15 34 15"/><path d="M6 25 Q15 25 15 34"/><path d="M34 25 Q25 25 25 34"/></g></svg>`;
-const SPIRAL_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><path d="${spiralPath(3, 40)}" fill="none" stroke="#3b3550" stroke-width="2.6" stroke-linecap="round"/></svg>`;
-const SPIKE_SVG = `<svg viewBox="0 0 52 34" width="100%" height="100%"><path d="M3 31 L11 6 L19 27 L26 3 L33 27 L41 6 L49 31" fill="none" stroke="#1e1e1e" stroke-width="4" stroke-linejoin="miter"/></svg>`;
-const DASH_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g stroke="#1e1e1e" stroke-width="4" stroke-linecap="round">
-<path d="M8 30 L14 8"/><path d="M19 32 L24 10"/><path d="M30 34 L34 12"/></g></svg>`;
-const BURST_SVG = `<svg viewBox="0 0 60 60" width="100%" height="100%"><polygon points="${burstPoints(11, 29, 13, 30)}" fill="#fff" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"/>
-<polygon points="${burstPoints(9, 17, 8, 30)}" fill="#ffe04a"/></svg>`;
+const TORNADO_SVG = `<svg viewBox="0 0 70 75" width="100%" height="100%"><path d="${tornadoPath(5)}" fill="none" stroke="#1e1e1e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SPIKE_SVG = `<svg viewBox="0 0 50 28" width="100%" height="100%"><path d="M2 24 C6 22 9 16 11 6 C12 14 15 18 19 18 C22 12 24 6 27 2 C28 10 31 15 36 16 C39 12 42 9 46 8 C44 14 44 19 47 24" fill="none" stroke="#1e1e1e" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+const SCALE_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><path d="${scalePath()}" fill="none" stroke="#1e1e1e" stroke-width="2" stroke-linecap="round"/></svg>`;
+const BURST_SVG = `<svg viewBox="0 0 60 60" width="100%" height="100%"><polygon points="${burstPoints(11, 29, 13, 30)}" fill="#fff" stroke="#1e1e1e" stroke-width="2" stroke-linejoin="round"/></svg>`;
 const BULB_SVG = `<svg viewBox="0 0 48 48" width="100%" height="100%"><g stroke="#e0a800" stroke-width="2.5" stroke-linecap="round">
 <path d="M24 2 L24 6"/><path d="M8 8 L11 11"/><path d="M40 8 L37 11"/><path d="M2 21 L6 21"/><path d="M46 21 L42 21"/></g>
 <circle cx="24" cy="21" r="11" fill="#ffe66d" stroke="#8a6d00" stroke-width="2"/>
 <path d="M20 22 Q22 17 24 22 Q26 17 28 22" fill="none" stroke="#c48a00" stroke-width="1.5"/>
 <rect x="18.5" y="31" width="11" height="9" rx="2" fill="#cfcfcf" stroke="#666" stroke-width="1.5"/><path d="M19 34.5 H29 M19 37.5 H29" stroke="#888" stroke-width="1"/></svg>`;
-const BANDAGE_BAND = '<rect x="2" y="14" width="36" height="12" rx="6" fill="#f2cfa5" stroke="#b5835a" stroke-width="1.5"/><rect x="15" y="14" width="10" height="12" fill="#fae6cf" stroke="#b5835a" stroke-width="1"/>';
+const BANDAGE_BAND = '<rect x="3" y="15" width="34" height="10" rx="1.5" fill="#fbfbfb" stroke="#b4b4b4" stroke-width="1.2"/><rect x="15" y="15" width="10" height="10" fill="#ececec" stroke="#c4c4c4" stroke-width="0.8"/>';
 const BANDAGE_SVG = `<svg viewBox="0 0 40 40" width="100%" height="100%"><g transform="rotate(45 20 20)">${BANDAGE_BAND}</g><g transform="rotate(-45 20 20)">${BANDAGE_BAND}</g></svg>`;
 const GHOST_SVG = `<svg viewBox="0 0 40 56" width="100%" height="100%"><path d="M20 3 C31 3 36 12 35 21 C34 32 28 39 24 46 C22 50 24 53 28 55 C19 55 14 50 15 44 C16 38 6 32 5 21 C4 11 9 3 20 3 Z" fill="rgba(255,255,255,0.88)" stroke="#9aa6b8" stroke-width="1.5"/>
 <ellipse cx="15" cy="18" rx="2" ry="3" fill="#444"/><ellipse cx="25" cy="18" rx="2" ry="3" fill="#444"/><ellipse cx="20" cy="26" rx="2.5" ry="3" fill="#666"/></svg>`;
@@ -195,7 +209,7 @@ const EFFECTS = {
         play(L, u, d) {
             AROUND_FACE.slice(0, 6).forEach(([x, y], i) => {
                 const dx = (i % 2 ? 1 : -1) * u * 0.4;
-                run(place(L, glyph(i % 3 === 1 ? '♫' : '♪', '#8fd3ff', u * (i % 2 ? 0.9 : 1.1)), x, y),
+                run(place(L, glyph(i % 3 === 1 ? '♫' : '♪', '#5ab4ff', u * (i % 2 ? 0.9 : 1.1)), x, y),
                     [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.2, 1, -12, 1, 0.15), pf(dx, -u * 0.7, 1, 12, 1, 0.55), pf(-dx * 0.5, -u * 1.3, 0.9, -8, 0)],
                     d * 0.65, i * d * 0.07);
             });
@@ -219,7 +233,7 @@ const EFFECTS = {
         } },
     question: { label: '물음표', hint: 'confused, puzzled, wondering, not understanding', dur: 1800,
         play(L, u, d) {
-            run(place(L, glyph('?', '#ffd54a', u * 1.6), 68, 16),
+            run(place(L, glyph('?', '#ffd54a', u * 1.4), 68, 16),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.25, 0, 1, 0.15), pf(0, 0, 1, -14, 1, 0.3), pf(0, 0, 1, 12, 1, 0.45),
                     pf(0, 0, 1, -6, 1, 0.6), pf(0, 0, 1, 0, 1, 0.85), pf(0, -u * 0.3, 1, 0, 0)], d);
             run(place(L, glyph('?', '#ffd54a', u * 0.9), 59, 24),
@@ -229,21 +243,26 @@ const EFFECTS = {
     exclaim: { label: '느낌표', hint: 'surprised, alarmed, suddenly noticing something', dur: 1400,
         play(L, u, d) {
             const j = u * 0.08;
-            run(place(L, glyph('!', '#ff4d4d', u * 1.7), 68, 14),
+            run(place(L, glyph('!', '#ff4d4d', u * 1.5), 68, 14),
                 [pf(0, u * 0.3, 0, 0, 0), pf(0, 0, 1.4, 0, 1, 0.12), pf(0, 0, 1, 0, 1, 0.25), pf(-j * 2, 0, 1, -6, 1, 0.32),
                     pf(j * 2, 0, 1, 6, 1, 0.39), pf(-j, 0, 1, -3, 1, 0.46), pf(0, 0, 1, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d);
         } },
     startle: { label: '깜짝(^^^)', hint: 'jolted with surprise, shocked, caught off guard', dur: 1300,
         play(L, u, d) {
-            [[35, 16, -35], [FACE_X, 8, 0], [65, 16, 35]].forEach(([x, y, r], i) => {
-                const el = place(L, svg(SPIKE_SVG, u * 1.2, u * 0.8), x, y);
+            [[32, 14, -30], [68, 14, 30]].forEach(([x, y, r]) => {
+                const el = place(L, svg(SPIKE_SVG, u * 1.1, u * 0.62), x, y);
                 el.classList.add('am-ink');
-                run(el, [pf(0, u * 0.3, 0.3, r, 0), pf(0, 0, 1.25, r, 1, 0.12), pf(0, 0, 1, r, 1, 0.25), pf(0, -u * 0.1, 1.05, r, 1, 0.4),
-                    pf(0, 0, 1, r, 1, 0.8), pf(0, -u * 0.2, 1, r, 0)], d, i * 40);
+                run(el, [pf(0, u * 0.3, 0.3, r, 0), pf(0, 0, 1.2, r, 1, 0.12), pf(0, 0, 1, r, 1, 0.25), pf(0, -u * 0.08, 1.05, r, 1, 0.4),
+                    pf(0, 0, 1, r, 1, 0.8), pf(0, -u * 0.2, 1, r, 0)], d);
             });
-            const dash = place(L, svg(DASH_SVG, u, u), 74, 30);
-            dash.classList.add('am-ink');
-            run(dash, [pf(0, 0, 0, 0, 0), pf(0, 0, 1.2, 0, 1, 0.15), pf(0, 0, 1, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d * 0.9, d * 0.1);
+        } },
+    cold_sweat: { label: '식은땀', hint: 'breaking into a cold sweat, flustered, awkward panic, nervously cornered', dur: 1800,
+        play(L, u, d) {
+            const el = place(L, svg(SCALE_SVG, u * 1.1, u * 1.1), 78, 24);
+            el.classList.add('am-ink');
+            const j = u * 0.03;
+            run(el, [pf(0, 0, 0.8, 0, 0), pf(0, 0, 1, 0, 1, 0.15), pf(-j, 0, 1, 0, 1, 0.3), pf(j, 0, 1, 0, 1, 0.4), pf(-j, 0, 1, 0, 1, 0.5),
+                pf(j, 0, 1, 0, 1, 0.6), pf(0, 0, 1, 0, 1, 0.8), pf(0, u * 0.1, 1, 0, 0)], d);
         } },
     sweat: { label: '땀', hint: 'nervous, awkward, embarrassed, an uh-oh moment', dur: 1600,
         play(L, u, d) {
@@ -258,7 +277,7 @@ const EFFECTS = {
         } },
     anger: { label: '빠직', hint: 'annoyed, irritated, angry, a vein popping', dur: 1500,
         play(L, u, d) {
-            run(place(L, svg(ANGER_SVG, u * 1.4, u * 1.4), 67, 16),
+            run(place(L, svg(ANGER_SVG, u * 1.2, u * 1.2), 67, 16),
                 [pf(0, 0, 0, 0, 0), pf(0, 0, 1.3, 0, 1, 0.15), pf(0, 0, 0.9, 0, 1, 0.3), pf(0, 0, 1.15, 0, 1, 0.45),
                     pf(0, 0, 0.95, 0, 1, 0.6), pf(0, 0, 1.05, 0, 1, 0.8), pf(0, 0, 1, 0, 0)], d);
         } },
@@ -272,38 +291,40 @@ const EFFECTS = {
         } },
     idea: { label: '전구', hint: 'a sudden idea, realization, figuring something out', dur: 1800,
         play(L, u, d) {
-            const el = place(L, svg(BULB_SVG, u * 2.2, u * 2.2), 68, 16);
+            const el = place(L, svg(BULB_SVG, u * 1.8, u * 1.8), 68, 16);
             el.classList.add('am-shine');
             run(el, [pf(0, u * 0.4, 0, 0, 0), pf(0, 0, 1.25, -8, 1, 0.15), pf(0, 0, 1, 6, 1, 0.3), pf(0, 0, 1.08, 0, 1, 0.45),
                 pf(0, 0, 1, 0, 1, 0.6), pf(0, 0, 1.08, 0, 1, 0.75), pf(0, -u * 0.2, 1, 0, 0)], d);
         } },
     dizzy: { label: '멘탈붕괴', hint: 'mentally shattered, overwhelmed, dizzy, head spinning in confusion', dur: 2400,
         play(L, u, d) {
-            [[FACE_X, 12, 1.6], [33, 22, 1.1], [67, 22, 1.1]].forEach(([x, y, s], i) => {
-                const el = place(L, svg(SPIRAL_SVG, u * s, u * s), x, y);
-                el.classList.add('am-ink');
-                const dir = i === 2 ? -1 : 1;
-                run(el, [pf(0, 0, 0, 0, 0), pf(0, 0, 1, dir * 180, 1, 0.2), pf(0, 0, 1, dir * 720, 1, 0.8), pf(0, 0, 0.8, dir * 900, 0)],
-                    d, i * 80, 'linear');
-            });
+            const el = place(L, svg(TORNADO_SVG, u * 1.4, u * 1.5), FACE_X, 12);
+            el.classList.add('am-ink');
+            run(el, [pf(0, 0, 0.3, 0, 0), pf(0, 0, 1.05, -6, 1, 0.15), pf(0, 0, 0.95, 6, 1, 0.3), pf(0, 0, 1.05, -6, 1, 0.45),
+                pf(0, 0, 0.95, 6, 1, 0.6), pf(0, 0, 1.03, -4, 1, 0.75), pf(0, -u * 0.2, 1, 0, 0)], d, 0, 'ease-in-out');
             veil(L, 'rgba(60, 50, 90, 0.25)', HOLD, d);
         } },
     hit: { label: '타격', hint: 'getting hit, a punch or slap landing, a sharp impact', dur: 900,
         play(L, u, d) {
-            run(place(L, svg(BURST_SVG, u * 2.4, u * 2.4), 68, 40),
-                [pf(0, 0, 0.2, 0, 0), pf(0, 0, 1.3, 10, 1, 0.12), pf(0, 0, 1, 0, 1, 0.3), pf(0, 0, 1, 0, 1, 0.7), pf(0, 0, 1.15, 0, 0)], d);
-            veil(L, 'rgba(255, 255, 255, 0.7)', [{ opacity: 0 }, { opacity: 1, offset: 0.08 }, { opacity: 0, offset: 0.3 }, { opacity: 0 }], d);
+            // Two quick hits: lower left, then upper right
+            [[30, 66, 0], [70, 30, 0.2]].forEach(([x, y, delay]) => {
+                run(place(L, svg(BURST_SVG, u * 1.5, u * 1.5), x, y),
+                    [pf(0, 0, 0.2, 0, 0), pf(0, 0, 1.3, 10, 1, 0.15), pf(0, 0, 1, 0, 1, 0.35), pf(0, 0, 1, 0, 1, 0.65), pf(0, 0, 1.15, 0, 0)],
+                    d * 0.75, d * delay);
+            });
+            veil(L, 'rgba(255, 255, 255, 0.6)', [{ opacity: 0 }, { opacity: 1, offset: 0.06 }, { opacity: 0, offset: 0.18 }, { opacity: 1, offset: 0.26 },
+                { opacity: 0, offset: 0.4 }, { opacity: 0 }], d);
         } },
     bandage: { label: '반창고', hint: 'hurt, bruised, beaten up, after getting hit', dur: 2200,
         play(L, u, d) {
-            run(place(L, svg(BANDAGE_SVG, u * 1.5, u * 1.5), 36, 58),
+            run(place(L, svg(BANDAGE_SVG, u * 1.1, u * 1.1), 58, 10),
                 [pf(0, 0, 1.8, -10, 0), pf(0, 0, 0.9, -10, 1, 0.12), pf(0, 0, 1.05, -10, 1, 0.22), pf(0, 0, 1, -10, 1, 0.85), pf(0, 0, 1, -10, 0)], d);
         } },
     soul: { label: '영혼 가출', hint: 'soul leaving the body, utterly drained, dumbfounded, mortified to death', dur: 3000,
         play(L, u, d) {
-            run(place(L, svg(GHOST_SVG, u * 2, u * 2.8), FACE_X, 55),
-                [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.6, 1, -6, 0.9, 0.2), pf(u * 0.4, -u * 1.8, 1, 8, 0.9, 0.5),
-                    pf(-u * 0.3, -u * 3, 1, -6, 0.8, 0.8), pf(u * 0.2, -u * 4, 1, 4, 0)], d, 0, 'ease-in-out');
+            run(place(L, svg(GHOST_SVG, u * 0.9, u * 1.26), FACE_X, 50),
+                [pf(0, 0, 0.3, 0, 0), pf(0, -u * 0.5, 1, 0, 0.9, 0.2), pf(0, -u * 1.5, 1, 0, 0.9, 0.5),
+                    pf(0, -u * 2.5, 1, 0, 0.8, 0.8), pf(0, -u * 3.2, 1, 0, 0)], d, 0, 'ease-in-out');
             veil(L, 'rgba(200, 210, 230, 0.3)', HOLD, d, { mixBlendMode: 'saturation' });
         } },
     focus: { label: '집중선', hint: 'intense focus, a dramatic moment, sudden tension', dur: 1600,
@@ -318,27 +339,30 @@ const EFFECTS = {
     dreamy: { label: '아련', hint: 'nostalgic, wistful, a tender memory, a soft dreamlike moment', dur: 3600,
         play(L, u, d) {
             veil(L, 'radial-gradient(ellipse at center, rgba(255, 255, 255, 0) 35%, rgba(255, 255, 255, 0.6) 100%)', HOLD, d);
+            // Bokeh stays inside the picture
+            const box = veil(L, 'none', [{ opacity: 1 }, { opacity: 1 }], d, { overflow: 'hidden' });
             [[12, 20, 1.6, 0], [30, 70, 1.1, 1], [80, 18, 1.9, 1], [88, 66, 1.2, 0], [56, 86, 1.4, 1], [20, 46, 0.7, 0],
                 [70, 50, 0.6, 0], [44, 14, 0.9, 1], [92, 40, 0.8, 0], [8, 82, 1.3, 1]].forEach(([x, y, s, ring], i) => {
                 const b = document.createElement('span');
                 b.className = ring ? 'am-p am-bokeh am-ring' : 'am-p am-bokeh';
                 b.style.width = b.style.height = `${u * s}px`;
-                run(place(L, b, x, y), [pf(0, u * 0.2, 0.7, 0, 0), pf(0, 0, 1, 0, 1, 0.3), pf(0, -u * 0.3, 1, 0, 1, 0.75), pf(0, -u * 0.5, 1.1, 0, 0)],
+                run(place(box, b, x, y), [pf(0, u * 0.2, 0.7, 0, 0), pf(0, 0, 1, 0, 1, 0.3), pf(0, -u * 0.3, 1, 0, 1, 0.75), pf(0, -u * 0.5, 1.1, 0, 0)],
                     d * 0.8, (i % 4) * d * 0.06, 'ease-in-out');
             });
         } },
     halo: { label: '후광', hint: 'radiant, holy, admirable, shining with charm or glory', dur: 3200,
         play(L, u, d) {
-            veil(L, `radial-gradient(ellipse 45% 60% at ${FACE_X}% ${FACE_Y}%, rgba(255, 236, 170, 0) 35%, rgba(255, 226, 140, 0.55) 60%, rgba(255, 226, 140, 0) 85%)`, HOLD, d,
-                { mixBlendMode: 'screen' });
-            const box = veil(L, 'none', HOLD, d, { overflow: 'hidden', mixBlendMode: 'screen' });
-            const rays = document.createElement('span');
-            rays.className = 'am-rays';
-            rays.style.left = `${FACE_X}%`;
-            rays.style.top = `${FACE_Y}%`;
-            box.append(rays);
-            rays.animate([{ transform: 'translate(-50%, -50%) rotate(0deg)' }, { transform: 'translate(-50%, -50%) rotate(40deg)' }],
-                { duration: d, easing: 'linear', fill: 'both' });
+            // The whole picture glows from its edges (gradients, since some themes disable box-shadow)
+            const pulse = [{ opacity: 0 }, { opacity: 1, offset: 0.2 }, { opacity: 0.7, offset: 0.45 }, { opacity: 1, offset: 0.65 }, { opacity: 1, offset: 0.8 }, { opacity: 0 }];
+            const g = Math.round(u * 0.5);
+            const inner = 'rgba(255, 245, 200, 0.8)';
+            veil(L, [`linear-gradient(to right, ${inner}, transparent ${g}px)`, `linear-gradient(to left, ${inner}, transparent ${g}px)`,
+                `linear-gradient(to bottom, ${inner}, transparent ${g}px)`, `linear-gradient(to top, ${inner}, transparent ${g}px)`].join(', '), pulse, d);
+            // A bright edge whose drop-shadow spills light outside the picture
+            veil(L, 'none', pulse, d, {
+                border: '3px solid rgba(255, 248, 215, 0.95)', boxSizing: 'border-box',
+                filter: `drop-shadow(0 0 ${Math.round(g * 0.3)}px #fff0b0) drop-shadow(0 0 ${Math.round(g * 0.6)}px #ffe08a) drop-shadow(0 0 ${g}px #ffd060)`,
+            });
         } },
     gloom: { label: '안색 어두움', hint: 'feeling sick, dread, despair, depressed, mortified', dur: 3200,
         play(L, u, d) {
@@ -687,7 +711,7 @@ function playEffect(el, effect) {
     };
     activeLayers.set(el, cleanup);
 
-    const unit = Math.max(20, Math.min(80, Math.min(el.offsetWidth, el.offsetHeight) * 0.2));
+    const unit = Math.max(24, Math.min(100, Math.min(el.offsetWidth, el.offsetHeight) * 0.28));
     def.play(layer, unit, def.dur / (Number(getSettings().speed) || 1));
     Promise.allSettled(layer.getAnimations({ subtree: true }).map(a => a.finished)).then(cleanup);
     return layer;
